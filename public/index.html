@@ -1,29 +1,97 @@
-cat > public/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Basit App</title>
+  <title>Kura Çekimi</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Minimal üst header (sağda logo) -->
+  <header class="site-header-min">
+    <div class="brand">
+      <img src="img/dobby-footballer.png" alt="SCL" class="header-logo" />
+      <span class="brand-title">Sentient CL Draw</span>
+    </div>
+
+    <nav class="main-nav">
+      <button class="nav-btn active" id="navTeams">Draw Teams</button>
+      <button class="nav-btn" id="navFixture">Draw Fixture</button>
+    </nav>
+  </header>
+
   <main class="container">
-    <h1>Basit App 👋</h1>
-    <p>HTML + CSS + Node.js (Express)</p>
+    <h1>Kura Çekimi</h1>
+    <p class="muted">Önce takım formatını seç; seçtiğin sayıda tier görünür ve her tier’da en az 1 oyuncu slotu olur.</p>
 
-    <div class="card">
-      <button id="helloBtn">Node'dan Selam Al</button>
-      <pre id="helloOut">... </pre>
-    </div>
+    <section class="card">
+      <header class="row space-between align-center">
+        <h2 class="m0">Katılımcılar</h2>
 
-    <div class="card">
-      <button id="timeBtn">Sunucu Saati</button>
-      <pre id="timeOut">... </pre>
-    </div>
+        <div class="row gap">
+          <!-- + butonu ve dinamik tier menüsü -->
+          <div class="addbox">
+            <button type="button" id="addFieldBtn" class="btn" aria-haspopup="true" aria-expanded="false">＋</button>
+            <div id="tierMenu" class="tier-menu hidden" role="menu"><!-- JS dolduracak --></div>
+          </div>
+
+
+          <button type="button" id="clearAllBtn" class="btn btn-ghost">Temizle</button>
+        </div>
+      </header>
+
+      <!-- 5 Tier alanı (JS görünür/gizli yapacak) -->
+      <div class="tiers-grid">
+        <div class="tier-card" data-tier="t1">
+          <h3>Tier 1</h3>
+          <div id="fields-t1" class="stack"></div>
+        </div>
+
+        <div class="tier-card" data-tier="t2">
+          <h3>Tier 2</h3>
+          <div id="fields-t2" class="stack"></div>
+        </div>
+
+        <div class="tier-card" data-tier="t3">
+          <h3>Tier 3</h3>
+          <div id="fields-t3" class="stack"></div>
+        </div>
+
+        <div class="tier-card" data-tier="t4">
+          <h3>Tier 4</h3>
+          <div id="fields-t4" class="stack"></div>
+        </div>
+
+        <div class="tier-card" data-tier="t5">
+          <h3>Tier 5</h3>
+          <div id="fields-t5" class="stack"></div>
+        </div>
+      </div>
+
+      <div class="teams-btn-wrap">
+        <button type="button" id="makeTeamsBtn" class="btn big-btn">Takımları Oluştur</button>
+      </div>
+
+      <!-- Sonuçlar -->
+      <div id="results" class="results card" style="margin-top:16px; display:none;"></div>
+    </section>
   </main>
+
+  <!-- Açılışta görünen FORMAT DİYALOĞU -->
+  <div id="formatDialog" class="dialog-backdrop">
+    <div class="dialog">
+      <h3 class="m0">Takım Formatı</h3>
+      <p class="muted" style="margin-top:6px">Seçtiğin sayı kadar tier görünecek.</p>
+      <div class="format-grid">
+        <button class="format-btn" data-format="1">1v1</button>
+        <button class="format-btn" data-format="2">2v2</button>
+        <button class="format-btn" data-format="3">3v3</button>
+        <button class="format-btn" data-format="4">4v4</button>
+        <button class="format-btn" data-format="5">5v5</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
 </html>
-EOF

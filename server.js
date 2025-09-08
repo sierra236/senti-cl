@@ -1,10 +1,9 @@
-cat > server.js << 'EOF'
 const express = require("express");
 const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// statik dosyalar
+// public klasörünü statik sun
 app.use(express.static(path.join(__dirname, "public")));
 
 // küçük API örnekleri
@@ -19,4 +18,3 @@ app.get("/api/time", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running: http://localhost:${PORT}`);
 });
-EOF
