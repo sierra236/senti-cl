@@ -1,0 +1,29 @@
+cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Basit App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Basit App 👋</h1>
+    <p>HTML + CSS + Node.js (Express)</p>
+
+    <div class="card">
+      <button id="helloBtn">Node'dan Selam Al</button>
+      <pre id="helloOut">... </pre>
+    </div>
+
+    <div class="card">
+      <button id="timeBtn">Sunucu Saati</button>
+      <pre id="timeOut">... </pre>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+EOF
