@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("addFieldBtn");
   const clearBtn = document.getElementById("clearAllBtn");
   const formatDialog = document.getElementById("formatDialog");
+  const changeFormatBtn = document.getElementById("changeFormatBtn");
 
   const makeTeamsBtn = document.getElementById("makeTeamsBtn");
   const resultsEl = document.getElementById("results");
@@ -110,6 +111,51 @@ document.addEventListener("DOMContentLoaded", () => {
     if (resultsEl) { resultsEl.style.display = "none"; resultsEl.innerHTML = ""; }
   }
 
+  function teamsToMatrix(result, n) {
+  const headers = ["Team"];
+  for (let i = 1; i <= n; i++) headers.push(`T${i}`);
+  const rows = result.teams.map((members, idx) => {
+    const row = Array(n + 1).fill("");
+    row[0] = `Team ${idx + 1}`;
+    members.forEach(m => {
+      const tierIdx = parseInt(m.tier.slice(1), 10) - 1;
+      if (tierIdx >= 0 && tierIdx < n) row[tierIdx + 1] = m.name;
+    });
+    return row;
+  });
+  return { headers, rows };
+}
+
+// CSV üret
+function toCSV(headers, rows) {
+  const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  const lines = [];
+  lines.push(headers.map(esc).join(","));
+  rows.forEach(r => lines.push(r.map(esc).join(",")));
+  return lines.join("\r\n");
+}
+
+// CSV indir
+function downloadCSV(filename, text) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.style.display = "none";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+}
+
+// XLSX indir (SheetJS varsa)
+function downloadXLSX(filename, headers, rows) {
+  if (!window.XLSX) return false;
+  const wsData = [headers, ...rows];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  XLSX.utils.book_append_sheet(wb, ws, "Teams");
+  XLSX.writeFile(wb, filename);
+  return true;
+}
+
   function loadData() {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -135,6 +181,17 @@ document.addEventListener("DOMContentLoaded", () => {
         .filter(Boolean);
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }
+
+  function snapshotFromDOM() {
+  // currentFormat + ekrandaki inputlardan güncel liste
+  const snap = { format: currentFormat || 1 };
+  for (const key of Object.keys(containers)) {
+    snap[key] = [...containers[key].querySelectorAll("input")]
+      .map(i => i.value.trim())
+      .filter(Boolean);
+  }
+  return snap;
   }
 
   function applyFormat(n) {
@@ -179,6 +236,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (clearBtn) clearBtn.addEventListener("click", clearAll);
 
+  changeFormatBtn?.addEventListener("click", () => {
+    // güvene almak istersen son hali kaydet
+    persist();
+    // diyaloğu göster
+    if (formatDialog) formatDialog.style.display = "";
+  });
+
+
   /* ---------- Format diyaloğu ---------- */
   const saved = loadData();
   const defaultFormat = saved?.format || 1;
@@ -186,8 +251,9 @@ document.addEventListener("DOMContentLoaded", () => {
   formatDialog?.querySelectorAll(".format-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const n = Number(btn.dataset.format);
-      restoreToFormat(n, saved);
-      if (formatDialog) formatDialog.style.display = "none";
+      const snap = snapshotFromDOM();   // ekrandaki en güncel isimlerle çalış
+      restoreToFormat(n, snap);
+      formatDialog.style.display = "none";
     });
   });
 
@@ -255,6 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Takım kutuları
     result.teams.forEach((teamMembers, idx) => {
       const teamBox = document.createElement("div");
       teamBox.className = "team";
@@ -275,12 +342,26 @@ document.addEventListener("DOMContentLoaded", () => {
       resultsEl.appendChild(teamBox);
     });
 
-    if (result.teams.length === 0) {
-      const warn = document.createElement("div");
-      warn.className = "warn";
-      warn.textContent = "Yeterli oyuncu yok.";
-      resultsEl.appendChild(warn);
-    }
+    // İndir butonu (Excel/CSV)
+    const actions = document.createElement("div");
+    actions.className = "row gap";
+    actions.style.marginTop = "12px";
+
+    const dlBtn = document.createElement("button");
+    dlBtn.className = "btn";
+    dlBtn.textContent = "İndir (Excel/CSV)";
+    dlBtn.addEventListener("click", () => {
+      const n = currentFormat || 1;
+      const { headers, rows } = teamsToMatrix(result, n);
+      // Önce .xlsx dene (SheetJS varsa), yoksa CSV’ye düş
+      if (!downloadXLSX("teams.xlsx", headers, rows)) {
+        const csv = toCSV(headers, rows);
+        downloadCSV("teams.csv", csv);
+      }
+    });
+
+    actions.appendChild(dlBtn);
+    resultsEl.appendChild(actions);
   }
 
   makeTeamsBtn?.addEventListener("click", () => {
