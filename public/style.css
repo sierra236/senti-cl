@@ -1,15 +1,28 @@
-/* ========== Temel Tema ========== */
-* { box-sizing: border-box; }
+/* ========== Tema Değişkenleri ========== */
 :root{
-  --bg:#0f172a;        /* slate-900 */
-  --fg:#e2e8f0;        /* slate-200 */
-  --muted:#94a3b8;     /* slate-400 */
-  --card:#111827;      /* gray-900 */
-  --border:#1f2937;    /* gray-800 */
-  --primary:#2563eb;   /* blue-600 */
-  --danger:#ef4444;    /* red-500 */
+  --bg:#0f172a;        /* sayfa arka planı */
+  --fg:#e2e8f0;        /* metin */
+  --muted:#94a3b8;     /* ikincil metin */
+  --card:#111827;      /* kart arkası */
+  --border:#1f2937;    /* kenar çizgisi */
+  --primary:#2563eb;   /* ana renk */
+  --primary-2:#3b82f6; /* hover tonu */
+  --danger:#ef4444;
+
+  /* Bracket alt tonları */
+  --bg-1:#0b1020;
+  --bg-2:#101728;
+  --bg-3:#121827;
+  --line:#2b3245;
+  --line-soft:#394059;
+  --text:#e5e7eb;
+  --text-dim:#9ca3af;
+  --chip:#1f2937;
+  --glow: 0 8px 24px rgba(0,0,0,.35);
 }
-html,body{height:100%}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 body{
   margin:0;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -17,92 +30,69 @@ body{
   color:var(--fg);
 }
 
-/* ========== Header (sadece sağda görsel) ========== */
-
-/* Şık, sol hizalı header */
+/* ========== Header ========== */
 .site-header-min{
-  position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center;
-  gap: 20px; /* brand ile menü arası */
-  padding: 10px 16px;
-  background: rgba(17,24,39,.9); /* var(--card) + opaklık */
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(6px);
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:20px;
+  padding:10px 16px;
+  background:rgba(17,24,39,.9);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(6px);
 }
-
-/* Logo + başlık */
-.brand{ display: flex; align-items: center; gap: 10px; }
+.brand{ display:flex; align-items:center; gap:10px; }
 .header-logo{
-  width: 40px; height: 40px; object-fit: cover;
-  border-radius: 10px; border: 1px solid var(--border);
-  box-shadow: 0 6px 18px rgba(0,0,0,.35);
-  background: #0b1220;
-}
-.brand-title{
-  font-weight: 800;
-  font-size: 18px;              /* daha rafine boyut */
-  letter-spacing: .3px;
-  color: var(--fg);
-  margin-right: 2px;
-}
-
-/* Menü – butonlar brand’in hemen yanında, soldan başlıyor */
-.main-nav{
-  display: flex; align-items: center; gap: 10px;
-  padding-left: 12px;
-  border-left: 1px solid rgba(148,163,184,.18); /* ince ayırıcı çizgi */
-}
-
-/* Pill stil butonlar */
-.nav-btn{
-  appearance: none;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg,#0b1220,#0a1222);
-  color: var(--fg);
-  padding: 8px 14px;
-  border-radius: 999px;          /* pill */
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: transform .06s ease, box-shadow .12s ease, filter .12s ease, background .12s ease;
-}
-.nav-btn:hover{
-  filter: brightness(1.08);
-  box-shadow: 0 6px 16px rgba(0,0,0,.25);
-}
-.nav-btn:active{ transform: translateY(1px); }
-.nav-btn:focus-visible{
-  outline: 2px solid color-mix(in srgb, var(--primary) 60%, white);
-  outline-offset: 2px;
-}
-
-/* Aktif buton – dolu ve hafif parlak */
-.nav-btn.active{
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  box-shadow: 0 6px 18px rgba(37,99,235,.35);
-}
-
-/* Responsive dokunuşlar */
-@media (max-width: 720px){
-  .brand-title{ font-size: 16px; }
-  .main-nav{ gap: 8px; padding-left: 10px; }
-  .nav-btn{ padding: 7px 12px; font-size: 13px; }
-}
-
-
-.header-logo{
-  height:56px; width:56px; object-fit:cover;
+  width:56px; height:56px; object-fit:cover;
   border-radius:12px; border:1px solid var(--border);
   background:#0b1220;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.brand-title{
+  font-weight:800; font-size:18px; letter-spacing:.3px; color:var(--fg);
+}
+.main-nav{
+  display:flex; align-items:center; gap:10px;
+  padding-left:12px; border-left:1px solid rgba(148,163,184,.18);
+}
+.nav-btn{
+  appearance:none; border:1px solid var(--border);
+  background:linear-gradient(180deg,#0b1220,#0a1222);
+  color:var(--fg); padding:8px 14px; border-radius:999px;
+  font-weight:700; font-size:14px; cursor:pointer;
+  transition:transform .06s, box-shadow .12s, filter .12s, background .12s;
+}
+.nav-btn:hover{ filter:brightness(1.08); box-shadow:0 6px 16px rgba(0,0,0,.25); }
+.nav-btn:active{ transform:translateY(1px); }
+.nav-btn:focus-visible{
+  outline:2px solid color-mix(in srgb, var(--primary) 60%, white);
+  outline-offset:2px;
+}
+.nav-btn.active{
+  background:var(--primary); color:#fff; border-color:var(--primary);
+  box-shadow:0 6px 18px rgba(37,99,235,.35);
+}
+@media (max-width:720px){
+  .brand-title{ font-size:16px; }
+  .main-nav{ gap:8px; padding-left:10px; }
+  .nav-btn{ padding:7px 12px; font-size:13px; }
+}
+@media (max-width:640px){
+  .header-logo{ width:48px; height:48px; }
 }
 
 /* ========== Layout & Tipografi ========== */
-.container{max-width:760px; margin:48px auto; padding:0 16px;}
-h1{margin:0 0 8px; font-size:32px;}
-h2{font-size:20px; color:var(--fg); margin:0;}
-.muted{color:var(--muted); margin:0 0 24px;}
+.container{ max-width:760px; margin:48px auto; padding:0 16px; }
+h1{ margin:0 0 8px; font-size:32px; }
+h2{ font-size:20px; color:var(--fg); margin:0; }
+.muted{ color:var(--muted); margin:0 0 24px; }
+
+.stack>*+*{ margin-top:12px; }
+.row{ display:flex; align-items:center; }
+.row.wrap{ flex-wrap:wrap; }
+.space-between{ justify-content:space-between; }
+.align-center{ align-items:center; }
+.gap{ gap:10px; }
+.m0{ margin:0; }
+.hidden{ display:none !important; }
 
 /* ========== Kart ========== */
 .card{
@@ -113,14 +103,6 @@ h2{font-size:20px; color:var(--fg); margin:0;}
   box-shadow:0 6px 20px rgba(0,0,0,.25);
 }
 .card header{ margin-bottom:16px; }
-
-/* ========== Yardımcı Layout Sınıfları ========== */
-.stack>*+*{ margin-top:12px; }
-.row{ display:flex; align-items:center; }
-.space-between{ justify-content:space-between; }
-.align-center{ align-items:center; }
-.gap{ gap:10px; }
-.m0{ margin:0; }
 
 /* ========== Form / Inputlar ========== */
 .input-row{
@@ -137,95 +119,63 @@ h2{font-size:20px; color:var(--fg); margin:0;}
 
 /* ========== Butonlar ========== */
 .btn{
-  appearance:none; border:0; border-radius:10px;
-  padding:10px 14px; font-weight:600; cursor:pointer;
-  background:var(--primary); color:#fff;
+  display:inline-flex; align-items:center; gap:.5rem;
+  height:40px; padding:0 14px; border-radius:10px;
+  appearance:none; border:1px solid var(--line);
+  background:var(--bg-3); color:var(--text);
+  font-weight:600; letter-spacing:.2px; cursor:pointer;
+  transition:.2s ease; box-shadow:var(--glow);
 }
-.btn:hover{ filter:brightness(1.05); }
+.btn:hover{ border-color:var(--line-soft); background:#162032; }
+.btn:active{ transform:translateY(1px) scale(.99); }
+.btn-primary{ background:var(--primary); border-color:transparent; color:#fff; }
+.btn-primary:hover{ background:var(--primary-2); }
+.btn-ghost{ background:transparent; border-color:var(--line-soft); color:var(--muted); }
 
 .btn-icon{
-  display:inline-flex; align-items:center; justify-content:center;
+  display:inline-grid; place-items:center;
   width:42px; height:42px; border-radius:10px;
   border:1px solid var(--border); background:#0b1220; color:var(--fg);
   cursor:pointer;
 }
 .btn-icon:hover{ filter:brightness(1.15); }
 .btn-danger{ border-color:rgba(239,68,68,.35); color:#fecaca; }
+.btn-split{ display:inline-flex; border-radius:10px; overflow:hidden; box-shadow:var(--glow); }
+.btn-split .btn{ border-radius:0; border-left:0; }
 
-.btn-ghost{
-  background:transparent; color:var(--muted);
-  border:1px dashed var(--border);
-}
-
-/* ========== Mobil ========== */
-@media (max-width:640px){
-  .header-logo{ height:48px; width:48px; }
-}
-
-/* Tier grid (5'e kadar) */
+/* ========== Tier Grid ========== */
 .tiers-grid{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:16px;
+  display:grid; grid-template-columns:1fr 1fr; gap:16px;
 }
 .tier-card{
-  background:#0b1220;
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:12px;
+  background:#0b1220; border:1px solid var(--border);
+  border-radius:12px; padding:12px;
 }
 .tier-card h3{ margin:0 0 8px; }
-.hidden{ display:none !important; }
+@media (max-width:640px){ .tiers-grid{ grid-template-columns:1fr; } }
 
-/* + butonu popover */
-.addbox{ position: relative; }
-.tier-menu{
-  position:absolute; right:0; top:46px;
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:10px; padding:6px;
+/* ========== Format Diyaloğu ========== */
+.format-screen{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  min-height:46vh;
+}
+.format-box{
+  background:var(--card); border:1px solid var(--border);
+  border-radius:16px; padding:20px; max-width:560px; width:100%;
   box-shadow:0 10px 30px rgba(0,0,0,.35);
-  display:flex; flex-direction:column; gap:6px;
-  min-width:140px;
-}
-.tier-item{
-  background:#0b1220; border:1px solid var(--border);
-  border-radius:8px; padding:8px 10px; text-align:left;
-  color:var(--fg); cursor:pointer;
-}
-.tier-item:hover{ filter:brightness(1.1); }
-
-/* Açılış format diyaloğu */
-.dialog-backdrop{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.45);
-  display:flex; align-items:center; justify-content:center;
-  z-index:100;
-}
-.dialog{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px; padding:18px;
-  width: min(92vw, 480px);
-  box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
 .format-grid{
-  margin-top:14px;
-  display:grid; grid-template-columns: repeat(5, 1fr); gap:10px;
+  display:grid; grid-template-columns:repeat(5, minmax(0,1fr));
+  gap:10px; margin-top:12px;
 }
-.format-btn{
-  background:#0b1220; border:1px solid var(--border);
-  border-radius:10px; padding:10px 0; font-weight:700; cursor:pointer;
-  color:var(--fg);
+.fs-btn{
+  border:1px solid var(--border); background:#0b1220; color:var(--fg);
+  padding:10px 0; border-radius:12px; font-weight:800; cursor:pointer;
 }
-.format-btn:hover{ filter:brightness(1.1); }
+.fs-btn:hover{ filter:brightness(1.1); }
+@media (max-width:640px){ .format-grid{ grid-template-columns:repeat(3, 1fr); } }
 
-/* Responsive */
-@media (max-width: 640px){
-  .tiers-grid{ grid-template-columns:1fr; }
-  .format-grid{ grid-template-columns: repeat(3, 1fr); }
-}
-
+/* ========== Sonuçlar / Takımlar ========== */
 .results h3{ margin:0 0 8px; }
 .team{
   background:#0b1220; border:1px solid var(--border);
@@ -237,20 +187,10 @@ h2{font-size:20px; color:var(--fg); margin:0;}
   background:#1f2937; border:1px solid rgba(239,68,68,.35);
   color:#fecaca; border-radius:10px; padding:10px 12px; margin-top:10px;
 }
+.teams-btn-wrap{ margin:32px 0; display:flex; justify-content:center; }
+.big-btn{ padding:16px 28px; font-size:18px; font-weight:700; border-radius:12px; }
 
-.teams-btn-wrap {
-  margin: 32px 0;              /* üst ve alt boşluk */
-  display: flex;
-  justify-content: center;     /* yatay ortala */
-}
-
-.big-btn {
-  padding: 16px 28px;
-  font-size: 18px;
-  font-weight: 700;
-  border-radius: 12px;
-}
-
+/* ========== Kurallar ========== */
 .rule-item{
   display:flex; align-items:center; justify-content:space-between;
   gap:8px; padding:10px 12px;
@@ -265,38 +205,101 @@ h2{font-size:20px; color:var(--fg); margin:0;}
 .rule-names{ color:var(--muted); }
 .rule-remove{ border:1px solid rgba(239,68,68,.35); color:#fecaca; }
 
+/* ========== Fixture Toolbar ========== */
+.field{ display:flex; flex-direction:column; gap:6px; min-width:160px; }
+.fixture-toolbar{ margin-top:6px; }
 
-.hidden { display: none !important; }
-.field { display:flex; flex-direction:column; gap:6px; min-width:160px; }
-.row.wrap { flex-wrap: wrap; }
-.fixture-toolbar { margin-top: 6px; }
+/* ========== Bracket Görünümü ========== */
+/* JS tarafında BR_BOX_W/H = 260x58 */
+.bracket-section{ margin:10px 0 6px; }
 
-/* Tam sayfa ilk ekran */
-.format-screen{
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 46vh; /* başlık altında ortalansın */
+.bracket-wrap{
+  margin-top:12px; padding:12px 16px;
+  background:var(--bg-1); border:1px solid var(--line); border-radius:14px;
+  position:relative; overflow:auto;
 }
-.format-box{
-  background: #0f172a; /* var(--card) benzeri */
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  max-width: 560px; width: 100%;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+.bracket-svg{
+  position:absolute; inset:0; pointer-events:none;
 }
-.format-grid{
-  display: grid; grid-template-columns: repeat(5, minmax(0,1fr));
-  gap: 10px; margin-top: 12px;
+.br-line{
+  stroke:#56607a; stroke-width:2.5; fill:none; opacity:.9;
 }
-.fs-btn{
-  border: 1px solid var(--border);
-  background: #0b1220;
-  color: var(--fg);
-  padding: 10px 0;
-  border-radius: 12px;
-  font-weight: 800;
-  cursor: pointer;
+
+/* Maç kutusu */
+.match-box{
+  position:absolute; /* JS konumluyor */
+  background:var(--bg-3); border:1px solid var(--line);
+  border-radius:12px; padding:8px 10px 10px;
+  color:var(--text);
+  width:260px; height:58px;
+  box-shadow:var(--glow);
 }
-.fs-btn:hover{ filter: brightness(1.1); }
-.hidden{ display:none !important; }
+.match-title{
+  display:flex; align-items:center; gap:.5rem;
+  font-size:12px; font-weight:700; color:var(--text-dim);
+  margin:-2px 0 6px; letter-spacing:.2px;
+}
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:20px; padding:0 8px; border-radius:999px;
+  background:rgba(59,130,246,.15); color:#cde1ff; border:1px solid rgba(59,130,246,.35);
+  font-size:11px; font-weight:800;
+}
+.team-row{ display:flex; align-items:center; gap:8px; height:18px; }
+.team-name{
+  display:inline-block;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-weight:600;
+  letter-spacing:.2px;
+}
+
+.sep{ height:6px; }
+
+/* Tur başlığı chip’i (JS: .round-chip) */
+.round-chip{
+  position:absolute;
+  height:24px; padding:0 10px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--chip); color:#cbd5e1; border:1px solid transparent;
+  border-radius:10px; font-weight:800; letter-spacing:.3px;
+}
+
+/* ========== Dropdown (İndir) ========== */
+.dropdown{ position:relative; display:inline-block; }
+.dropdown-menu{
+  position:absolute; right:0; top:100%; margin-top:6px;
+  background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+  padding:6px; min-width:180px; z-index:60;
+  display:none; box-shadow:0 20px 40px rgba(0,0,0,.4);
+}
+.dropdown.open .dropdown-menu{ display:block; }
+.menu-item{
+  display:block; width:100%; text-align:left;
+  padding:10px 12px; border-radius:10px; border:0; cursor:pointer;
+  color:var(--text); background:transparent; font-weight:600;
+}
+.menu-item:hover{ background:#151c2f; }
+.menu-sep{ height:1px; background:var(--line); margin:6px 4px; }
+
+/* ========== Küçük Ekran Ayarları ========== */
+@media (max-width:1200px){
+  /* JS mutlak genişliği set ediyor; bu yalnızca statik durum için */
+  .match-box{ width:220px; }
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  background: #0b1020; /* senin tema rengine uyuyor */
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.toolbar .btn { /* mevcut .btn sınıflarınla uyumlu kalır */
+  white-space: nowrap;
+}
