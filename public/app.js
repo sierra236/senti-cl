@@ -1,4 +1,4 @@
-// app.js — tek dosya, tam sürüm (stabil PNG export: SVG->PNG)
+// app.js — tek dosya, tam sürüm (takım ve fikstür "Sıradaki" reveal)
 document.addEventListener("DOMContentLoaded", () => {
   /* ---------- DOM ---------- */
   const addBtn = document.getElementById("addFieldBtn");
@@ -44,10 +44,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentFormat = null; // 1..5
   let MIN_REQUIRED = {};    // görünür tier'lar için min=1, diğerleri 0
 
-    // Takımı tek tek açmak için durum
-  let TEAM_QUEUE = [];      // [{tier:'t1',name:'…'}, ...] listelerinin dizisi
-  let TEAM_REVEALED = 0;    // kaç takım ekrana basıldı
+  // Reveal state: Takımlar
+  let TEAM_QUEUE = [];                 // [[{tier,name}...], ...]
   let MEMBER_PTR = { team: 0, member: 0 };
+
+  // Reveal state: Fikstür
+  let FIXTURE_QUEUE = [];              // [{boxIndex, slot, name, listSpan?}, ...]
+  let FIXTURE_PTR = 0;
 
   /* ---------- Yardımcılar ---------- */
   function visibleTierKeys() {
@@ -337,7 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  /* ===================== TAKIM OLUŞTURMA ===================== */
+  /* ===================== TAKIM OLUŞTURMA (reveal kişi) ===================== */
   function readFilled() {
     const data = {};
     for (const key of Object.keys(containers)) {
@@ -452,7 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dlBtn.className = "btn";
     dlBtn.id = "teamsDownloadBtn";
     dlBtn.textContent = "İndir (Excel/CSV)";
-    dlBtn.disabled = true;                   // tüm takımlar açılınca aktif olacak
+    dlBtn.disabled = true; // tüm takımlar açılınca aktif olacak
     dlBtn.addEventListener("click", () => {
       const n = currentFormat || 1;
       const headers = ["Team", ...Array.from({ length: n }, (_, i) => `T${i + 1}`)];
@@ -483,79 +486,73 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
     TEAM_QUEUE = res.teams || [];
-    TEAM_REVEALED = 0;
+    MEMBER_PTR = { team: 0, member: 0 };
     renderTeamsHeader();
     return true;
   }
 
-  // Her çağrıda bir takımı ekrana ekle
-function revealOneMember() {
-  if (!TEAM_QUEUE.length) return;
+  // Her çağrıda bir KİŞİ ekrana ekle
+  function revealOneMember() {
+    if (!TEAM_QUEUE.length) return;
 
-  const tIdx = MEMBER_PTR.team;
-  const mIdx = MEMBER_PTR.member;
-  if (tIdx >= TEAM_QUEUE.length) return;
+    const tIdx = MEMBER_PTR.team;
+    const mIdx = MEMBER_PTR.member;
+    if (tIdx >= TEAM_QUEUE.length) return;
 
-  const member = TEAM_QUEUE[tIdx][mIdx];
+    const member = TEAM_QUEUE[tIdx][mIdx];
 
-  // eğer bu takım kutusu yoksa önce oluştur
-  let teamBox = resultsEl.querySelector(`.team[data-idx="${tIdx}"]`);
-  if (!teamBox) {
-    teamBox = document.createElement("div");
-    teamBox.className = "team";
-    teamBox.setAttribute("data-idx", tIdx);
+    // takım kutusu yoksa oluştur
+    let teamBox = resultsEl.querySelector(`.team[data-idx="${tIdx}"]`);
+    if (!teamBox) {
+      teamBox = document.createElement("div");
+      teamBox.className = "team";
+      teamBox.setAttribute("data-idx", tIdx);
 
-    const h = document.createElement("div");
-    h.className = "team-title";
-    h.textContent = `Takım ${tIdx + 1}`;
-    teamBox.appendChild(h);
+      const h = document.createElement("div");
+      h.className = "team-title";
+      h.textContent = `Takım ${tIdx + 1}`;
+      teamBox.appendChild(h);
 
-    const ul = document.createElement("ul");
-    teamBox.appendChild(ul);
+      const ul = document.createElement("ul");
+      teamBox.appendChild(ul);
 
-    const actions = resultsEl.querySelector(".row.gap");
-    resultsEl.insertBefore(teamBox, actions);
-  }
+      const actions = resultsEl.querySelector(".row.gap");
+      resultsEl.insertBefore(teamBox, actions);
+    }
 
-  // üyeyi ekle
-  const ul = teamBox.querySelector("ul");
-  const li = document.createElement("li");
-  li.textContent = `[T${member.tier.slice(1)}] ${member.name}`;
-  ul.appendChild(li);
+    // üyeyi ekle
+    const ul = teamBox.querySelector("ul");
+    const li = document.createElement("li");
+    li.textContent = `[T${member.tier.slice(1)}] ${member.name}`;
+    ul.appendChild(li);
 
-  // pointer ilerlet
-  MEMBER_PTR.member++;
-  if (MEMBER_PTR.member >= TEAM_QUEUE[tIdx].length) {
-    MEMBER_PTR.team++;
-    MEMBER_PTR.member = 0;
-  }
+    // pointer ilerlet
+    MEMBER_PTR.member++;
+    if (MEMBER_PTR.member >= TEAM_QUEUE[tIdx].length) {
+      MEMBER_PTR.team++;
+      MEMBER_PTR.member = 0;
+    }
 
-  // bitti mi?
-  if (MEMBER_PTR.team >= TEAM_QUEUE.length) {
-    const dl = document.getElementById("teamsDownloadBtn");
-    if (dl) dl.disabled = false;
+    // bitti mi?
     const mainBtn = document.getElementById("makeTeamsBtn");
-    if (mainBtn) { mainBtn.textContent = "Bitti"; mainBtn.disabled = true; }
-  } else {
-    const mainBtn = document.getElementById("makeTeamsBtn");
-    if (mainBtn) mainBtn.textContent = "Sıradaki";
+    if (MEMBER_PTR.team >= TEAM_QUEUE.length) {
+      const dl = document.getElementById("teamsDownloadBtn");
+      if (dl) dl.disabled = false;
+      if (mainBtn) { mainBtn.textContent = "Bitti"; mainBtn.disabled = true; }
+    } else {
+      if (mainBtn) mainBtn.textContent = "Sıradaki";
+    }
   }
-}
 
-
-
-  // "Sıradaki" akışı:
-makeTeamsBtn?.addEventListener("click", () => {
-  if (!TEAM_QUEUE.length) {
-    const ok = prepareTeamQueue();
-    if (!ok) return;
-    makeTeamsBtn.textContent = "Sıradaki";
-    MEMBER_PTR = { team: 0, member: 0 };
-  }
-  revealOneMember();
-});
-
-
+  // "Sıradaki" akışı (Takımlar)
+  makeTeamsBtn?.addEventListener("click", () => {
+    if (!TEAM_QUEUE.length) {
+      const ok = prepareTeamQueue();
+      if (!ok) return;
+      makeTeamsBtn.textContent = "Sıradaki";
+    }
+    revealOneMember();
+  });
 
   /* ========== NAV: Draw Teams / Draw Fixture ========== */
   const navTeams = document.getElementById("navTeams");
@@ -584,11 +581,11 @@ makeTeamsBtn?.addEventListener("click", () => {
   navFixture?.addEventListener("click", () => showView("fixture"));
   showView("teams");
 
-  /* ========== FIXTURE (Takım adlarından eşleşme) ========== */
+  /* ========== FIXTURE (Takım adlarından eşleşme - reveal) ========== */
   const fixtureFields     = document.getElementById("fixtureFields");
   const addTeamBtn        = document.getElementById("addTeamBtn");
   const clearTeamsBtn     = document.getElementById("clearTeamsBtn");
-  const makeFixtureBtn    = document.getElementById("makeFixtureBtn");
+  const revealFixtureBtn  = document.getElementById("revealFixtureBtn"); // TEK buton
   const fixtureResults    = document.getElementById("fixtureResults");
 
   const fixtureModeEl     = document.getElementById("fixtureMode");
@@ -674,112 +671,94 @@ makeTeamsBtn?.addEventListener("click", () => {
     return { rounds, bye, sections: null };
   }
 
-function generateDoubleElim(teams, seedingMode = "shuffle") {
-  const list = [...teams];
-  if (seedingMode === "shuffle") randShuffle(list);
+  function generateDoubleElim(teams, seedingMode = "shuffle") {
+    const list = [...teams];
+    if (seedingMode === "shuffle") randShuffle(list);
+    const target = nextPow2(list.length);
+    while (list.length < target) list.push("BYE");
 
-  // Katılımcı sayısını 2^k'e tamamla
-  const target = nextPow2(list.length);
-  while (list.length < target) list.push("BYE");
+    const UB = [];
+    const labelHints = {};
 
-  // ---------- Upper Bracket ----------
-  const UB = [];
-  const labelHints = {}; // "UB R1-M3" -> "TakımA vs TakımB"
+    const R1 = [];
+    for (let i = 0; i < list.length; i += 2) R1.push([list[i], list[i + 1]]);
+    UB.push({ name: roundLabel(list.length, 0), matches: R1 });
+    R1.forEach((pair, i) => (labelHints[`UB R1-M${i + 1}`] = `${pair[0]} vs ${pair[1]}`));
 
-  // R1
-  const R1 = [];
-  for (let i = 0; i < list.length; i += 2) R1.push([list[i], list[i + 1]]);
-  UB.push({ name: roundLabel(list.length, 0), matches: R1 });
-  R1.forEach((pair, i) => (labelHints[`UB R1-M${i + 1}`] = `${pair[0]} vs ${pair[1]}`));
-
-  // R2..final
-  let prevCount = R1.length, teamCount = list.length / 2, roundNo = 2;
-  while (prevCount > 1) {
-    const matches = [];
-    for (let m = 0; m + 1 < prevCount; m += 2) {
-      const a = `Kazanan UB R${roundNo - 1}-M${m + 1}`;
-      const b = `Kazanan UB R${roundNo - 1}-M${m + 2}`;
-      matches.push([a, b]);
+    let prevCount = R1.length, teamCount = list.length / 2, roundNo = 2;
+    while (prevCount > 1) {
+      const matches = [];
+      for (let m = 0; m + 1 < prevCount; m += 2) {
+        const a = `Kazanan UB R${roundNo - 1}-M${m + 1}`;
+        const b = `Kazanan UB R${roundNo - 1}-M${m + 2}`;
+        matches.push([a, b]);
+      }
+      UB.push({ name: roundLabel(teamCount, roundNo - 1), matches });
+      matches.forEach((pair, i) => (labelHints[`UB R${roundNo}-M${i + 1}`] = `${pair[0]} vs ${pair[1]}`));
+      prevCount = matches.length;
+      teamCount = Math.max(1, teamCount / 2);
+      roundNo++;
     }
-    UB.push({ name: roundLabel(teamCount, roundNo - 1), matches });
-    matches.forEach((pair, i) => (labelHints[`UB R${roundNo}-M${i + 1}`] = `${pair[0]} vs ${pair[1]}`));
-    prevCount = matches.length;
-    teamCount = Math.max(1, teamCount / 2);
-    roundNo++;
-  }
 
-  // ---------- Lower Bracket (major/minor pattern) ----------
-  // UB round kaybeden referanslarını hazırla
-  const losersOf = (r, count) =>
-    Array.from({ length: count }, (_, i) => `Kaybeden UB R${r}-M${i + 1}`);
+    const losersOf = (r, count) =>
+      Array.from({ length: count }, (_, i) => `Kaybeden UB R${r}-M${i + 1}`);
 
-  const k = Math.log2(target);          // UB tur sayısı
-  const losersR1 = losersOf(1, target / 2); // N/2
-  const LB = [];
+    const k = Math.log2(target);
+    const losersR1 = losersOf(1, target / 2);
+    const LB = [];
 
-  const pairUp = (arr) => {
-    const out = [];
-    for (let i = 0; i + 1 < arr.length; i += 2) out.push([arr[i], arr[i + 1]]);
-    return out;
-  };
-  const winnersOfRound = (name, m) => Array.from({ length: m }, (_, i) => `Kazanan ${name}-M${i + 1}`);
+    const pairUp = (arr) => {
+      const out = [];
+      for (let i = 0; i + 1 < arr.length; i += 2) out.push([arr[i], arr[i + 1]]);
+      return out;
+    };
+    const winnersOfRound = (name, m) => Array.from({ length: m }, (_, i) => `Kazanan ${name}-M${i + 1}`);
 
-  // LB R1: sadece UB R1 kaybedenleri
-  const LBR1 = pairUp(losersR1);
-  if (LBR1.length) LB.push({ name: "LB R1", matches: LBR1 });
+    const LBR1 = pairUp(losersR1);
+    if (LBR1.length) LB.push({ name: "LB R1", matches: LBR1 });
 
-  // Sonraki her UB turu için: (minor) önce mevcut LB kazananları birbirine,
-  // sonra (major) o kazananlar UB_r kaybedenleriyle eşleşir
-  let lastWinners = winnersOfRound("LB R1", LBR1.length);
+    let lastWinners = winnersOfRound("LB R1", LBR1.length);
 
-  for (let r = 2; r <= k; r++) {
-    // minor
+    for (let r = 2; r <= k; r++) {
+      if (lastWinners.length >= 2) {
+        const minorName = `LB R${LB.length + 1}`;
+        const minor = pairUp(lastWinners);
+        LB.push({ name: minorName, matches: minor });
+        lastWinners = winnersOfRound(minorName, minor.length);
+      }
+      const losersThis = losersOf(r, Math.max(1, target / Math.pow(2, r)));
+      const pool = [...lastWinners, ...losersThis];
+      const majorName = `LB R${LB.length + 1}`;
+      const major = pairUp(pool);
+      if (major.length) LB.push({ name: majorName, matches: major });
+      lastWinners = winnersOfRound(majorName, major.length);
+    }
+
+    let lbFinalName = "LB Final";
     if (lastWinners.length >= 2) {
-      const minorName = `LB R${LB.length + 1}`;
-      const minor = pairUp(lastWinners);
-      LB.push({ name: minorName, matches: minor });
-      lastWinners = winnersOfRound(minorName, minor.length);
+      const fin = pairUp(lastWinners);
+      LB.push({ name: lbFinalName, matches: fin });
+      lastWinners = winnersOfRound(lbFinalName, fin.length);
+    } else {
+      if (lastWinners.length === 1) {
+        LB.push({ name: lbFinalName, matches: [[lastWinners[0], "LB'den gelen rakip"]] });
+        lastWinners = ["Kazanan LB Final-M1"];
+      }
     }
-    // major: UB r kaybedenleri eklenir
-    const losersThis = losersOf(r, Math.max(1, target / Math.pow(2, r)));
-    const pool = [...lastWinners, ...losersThis];
-    const majorName = `LB R${LB.length + 1}`;
-    const major = pairUp(pool);
-    if (major.length) LB.push({ name: majorName, matches: major });
-    lastWinners = winnersOfRound(majorName, major.length);
+
+    const ubWinner = `Kazanan ${UB[UB.length - 1].name}-M1`;
+    const lbWinner = lastWinners[0] || "LB Kazananı";
+    const grandFinal = [{ name: "Büyük Final", matches: [[ubWinner, lbWinner]] }];
+
+    const sections = [
+      { title: "Upper Bracket", rounds: UB },
+      { title: "Lower Bracket", rounds: LB },
+      { title: "Grand Final", rounds: grandFinal }
+    ];
+
+    const bye = R1.flat().includes("BYE") ? "BYE alanlar ilgili turda otomatik ilerler." : null;
+    return { rounds: [], bye, sections, labelHints };
   }
-
-  // LB Final (gerekirse)
-  let lbFinalName = "LB Final";
-  if (lastWinners.length >= 2) {
-    const fin = pairUp(lastWinners);
-    LB.push({ name: lbFinalName, matches: fin });
-    lastWinners = winnersOfRound(lbFinalName, fin.length);
-  } else {
-    // tek takım kalmışsa, sanal rakip ile bir eşleşme gösterebiliriz
-    if (lastWinners.length === 1) {
-      LB.push({ name: lbFinalName, matches: [[lastWinners[0], "LB'den gelen rakip"]] });
-      lastWinners = ["Kazanan LB Final-M1"];
-    }
-  }
-
-  // ---------- Grand Final ----------
-  const ubWinner = `Kazanan ${UB[UB.length - 1].name}-M1`;
-  const lbWinner = lastWinners[0] || "LB Kazananı";
-  const grandFinal = [{ name: "Büyük Final", matches: [[ubWinner, lbWinner]] }];
-
-  const sections = [
-    { title: "Upper Bracket", rounds: UB },
-    { title: "Lower Bracket", rounds: LB },
-    { title: "Grand Final", rounds: grandFinal }
-  ];
-
-  const bye = R1.flat().includes("BYE") ? "BYE alanlar ilgili turda otomatik ilerler." : null;
-
-  // Label’ları LB/GF tarafında daha okunur göstermek için döndürüyoruz
-  return { rounds: [], bye, sections, labelHints };
-}
-
 
   function generateRoundRobin(teams, doubleMode="single", seedingMode="shuffle"){
     let list = [...teams];
@@ -845,11 +824,8 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
     // Bu round içinde ID -> "A vs B" haritası (R{n}-M{k})
     const idToPair = {};
 
-    // “Kazanan/Kaybeden R..-M..” ve “.. UB R..-M..” metinlerini “(A vs B)” ile güzelleştir
     const pretty = (raw) => {
       if (typeof raw !== "string") return raw;
-
-      // UB referansı (LB/GF tarafı)
       const mUB = raw.match(/^(Kazanan|Kaybeden)\s+UB\s+(R\d-M\d)$/i);
       if (mUB) {
         const what = mUB[1];
@@ -857,8 +833,6 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
         if (labelHints[key]) return `${what} (${labelHints[key]})`;
         return raw;
       }
-
-      // Normal referans (aynı kolon ağacında)
       const m = raw.match(/^(Kazanan|Kaybeden)\s+(R\d-M\d)$/i);
       if (m) {
         const what = m[1];
@@ -866,7 +840,6 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
         if (idToPair[key]) return `${what} (${idToPair[key]})`;
         return raw;
       }
-
       return raw;
     };
 
@@ -877,10 +850,12 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
       let curY = BR_WRAP_PAD + 30;
 
       rounds[0].matches.forEach((pair, mIdx) => {
-        // ID haritası: R1-Mk -> "A vs B"
         idToPair[`R1-M${mIdx + 1}`] = `${pair[0]} vs ${pair[1]}`;
 
-        const box = mkMatchBox([pretty(pair[0]), pretty(pair[1])]);
+        const box = mkMatchBox(["???", "???"]); // önce soru işaretleri
+        box.dataset.t1 = pretty(pair[0]);
+        box.dataset.t2 = pretty(pair[1]);
+
         place(box, x, curY, BR_BOX_W, BR_BOX_H);
         wrap.appendChild(box);
         col0.boxes.push({ el: box, x, y: curY, w: BR_BOX_W, h: BR_BOX_H });
@@ -901,22 +876,30 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
       const col = { boxes: [], titleEl: null };
 
       rounds[r].matches.forEach((pair, mIdx) => {
-        // Bu maçın ID’si
         const thisId = `R${r + 1}-M${mIdx + 1}`;
-
-        // Soldan gelen iki maçın (Rr-M{2i} ve Rr-M{2i+1}) “A vs B” metinlerini kaydet
         const srcA = `R${r}-M${mIdx * 2 + 1}`;
         const srcB = `R${r}-M${mIdx * 2 + 2}`;
         if (!idToPair[thisId] && idToPair[srcA]) {
           idToPair[thisId] = idToPair[srcA];
         }
 
-        const box = mkMatchBox([pretty(pair[0]), pretty(pair[1])]);
+        const box = mkMatchBox(["???", "???"]);
+        box.dataset.t1 = pretty(pair[0]);
+        box.dataset.t2 = pretty(pair[1]);
 
-        // Orta hizalama
+        // Orta hizalama (güvenli fallback)
         const leftA = prev.boxes[mIdx * 2];
         const leftB = prev.boxes[mIdx * 2 + 1];
-        const midY = ((leftA.y + leftA.h / 2) + (leftB.y + leftB.h / 2)) / 2 - BR_BOX_H / 2;
+        let midY;
+        if (leftA && leftB) {
+          midY = ((leftA.y + leftA.h / 2) + (leftB.y + leftB.h / 2)) / 2 - BR_BOX_H / 2;
+        } else if (leftA || leftB) {
+          const L = leftA || leftB;
+          midY = (L.y + L.h / 2) - BR_BOX_H / 2;
+        } else {
+          const step = (BR_BOX_H + BR_V_GAP) * Math.pow(2, r);
+          midY = BR_WRAP_PAD + 30 + ((step - BR_BOX_H)/2) + mIdx * step;
+        }
 
         place(box, x, midY, BR_BOX_W, BR_BOX_H);
         wrap.appendChild(box);
@@ -954,7 +937,11 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
       const left = cols[r - 1].boxes;
       const right = cols[r].boxes;
       for (let i = 0; i < right.length; i++) {
-        const A = left[i * 2], B = left[i * 2 + 1], T = right[i];
+        const A = left[i * 2];
+        const B = left[i * 2 + 1];
+        const T = right[i];
+        if (!A || !B || !T) continue;
+
         const x1a = A.x + A.w, y1a = A.y + A.h / 2;
         const x1b = B.x + B.w, y1b = B.y + B.h / 2;
         const x2  = T.x,       y2  = T.y + T.h / 2;
@@ -1006,7 +993,6 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
       if (w) el.style.width = w+"px"; if (h) el.style.height = h+"px";
     }
 
-    // metni sığdır
     function middleEllipsis(str, keep = 26){
       const s = String(str);
       if (s.length <= keep) return s;
@@ -1029,181 +1015,167 @@ function generateDoubleElim(teams, seedingMode = "shuffle") {
         }
       });
     }
-    wrap.__boxes = cols.map(c => c.boxes.map(b => ({
-  x: b.x, y: b.y, w: b.w, h: b.h,
-  t1: b.el.querySelectorAll(".team-name")[0]?.textContent || "",
-  t2: b.el.querySelectorAll(".team-name")[1]?.textContent || ""
-})));
-
   }
 
   /* ------------ Vektör Export (SVG -> PNG) ------------ */
+  function bracketWrapToSVG(wrapEl) {
+    const W = Math.ceil(wrapEl.scrollWidth || wrapEl.offsetWidth || 1000);
+    const H = Math.ceil(wrapEl.scrollHeight || wrapEl.offsetHeight || 600);
 
-// --- ESKİ bracketWrapToSVG'Yİ SİL, BUNU KOY ---
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("xmlns", svgNS);
+    svg.setAttribute("width",  W);
+    svg.setAttribute("height", H);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
-function bracketWrapToSVG(wrapEl) {
-  const W = Math.ceil(wrapEl.scrollWidth || wrapEl.offsetWidth || 1000);
-  const H = Math.ceil(wrapEl.scrollHeight || wrapEl.offsetHeight || 600);
+    // Arkaplan
+    const bgRect = document.createElementNS(svgNS, "rect");
+    bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
+    bgRect.setAttribute("width", String(W)); bgRect.setAttribute("height", String(H));
+    bgRect.setAttribute("fill", getComputedStyle(wrapEl).backgroundColor || "#0b1020");
+    svg.appendChild(bgRect);
 
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("xmlns", svgNS);
-  svg.setAttribute("width",  W);
-  svg.setAttribute("height", H);
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    // --- Kutuları oku
+    const wrapRect = wrapEl.getBoundingClientRect();
+    const boxesDom = Array.from(wrapEl.querySelectorAll(".match-box"));
+    const boxes = boxesDom.map(b => {
+      const r = b.getBoundingClientRect();
+      const x = r.left - wrapRect.left;
+      const y = r.top  - wrapRect.top;
+      const w = r.width, h = r.height;
+      const names = b.querySelectorAll(".team-name");
+      const t1 = names[0]?.getAttribute("data-full") || names[0]?.textContent || "";
+      const t2 = names[1]?.getAttribute("data-full") || names[1]?.textContent || "";
+      return { x, y, w, h, t1, t2 };
+    });
 
-  // Arkaplan
-  const bgRect = document.createElementNS(svgNS, "rect");
-  bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
-  bgRect.setAttribute("width", String(W)); bgRect.setAttribute("height", String(H));
-  bgRect.setAttribute("fill", getComputedStyle(wrapEl).backgroundColor || "#0b1020");
-  svg.appendChild(bgRect);
+    // Kutuları çiz
+    const drawBox = (b) => {
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", b.x); rect.setAttribute("y", b.y);
+      rect.setAttribute("width", b.w); rect.setAttribute("height", b.h);
+      rect.setAttribute("rx", "12"); rect.setAttribute("ry", "12");
+      rect.setAttribute("fill", "#11182b");
+      rect.setAttribute("stroke", "rgba(255,255,255,0.1)");
+      rect.setAttribute("stroke-width", "1");
+      svg.appendChild(rect);
 
-  // --- Kutuları oku (x,y,w,h, iki satır metin) ---
-  const wrapRect = wrapEl.getBoundingClientRect();
-  const boxesDom = Array.from(wrapEl.querySelectorAll(".match-box"));
-  const boxes = boxesDom.map(b => {
-    const r = b.getBoundingClientRect();
-    const x = r.left - wrapRect.left;
-    const y = r.top  - wrapRect.top;
-    const w = r.width, h = r.height;
-    const names = b.querySelectorAll(".team-name");
-    const t1 = names[0]?.getAttribute("data-full") || names[0]?.textContent || "";
-    const t2 = names[1]?.getAttribute("data-full") || names[1]?.textContent || "";
-    return { x, y, w, h, t1, t2 };
-  });
+      const padX = 12;
+      const t1 = document.createElementNS(svgNS, "text");
+      t1.setAttribute("x", b.x + padX);
+      t1.setAttribute("y", b.y + b.h/4 + 5);
+      t1.setAttribute("font-size", "14");
+      t1.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
+      t1.setAttribute("fill", "#e9eefc");
+      t1.setAttribute("dominant-baseline", "middle");
+      t1.textContent = b.t1;
+      svg.appendChild(t1);
 
-  // --- Kutuları çiz ---
-  const drawBox = (b) => {
-    const rect = document.createElementNS(svgNS, "rect");
-    rect.setAttribute("x", b.x); rect.setAttribute("y", b.y);
-    rect.setAttribute("width", b.w); rect.setAttribute("height", b.h);
-    rect.setAttribute("rx", "12"); rect.setAttribute("ry", "12");
-    rect.setAttribute("fill", "#11182b");
-    rect.setAttribute("stroke", "rgba(255,255,255,0.1)");
-    rect.setAttribute("stroke-width", "1");
-    svg.appendChild(rect);
+      const t2 = document.createElementNS(svgNS, "text");
+      t2.setAttribute("x", b.x + padX);
+      t2.setAttribute("y", b.y + (3*b.h)/4 - 5);
+      t2.setAttribute("font-size", "14");
+      t2.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
+      t2.setAttribute("fill", "#e9eefc");
+      t2.setAttribute("dominant-baseline", "middle");
+      t2.textContent = b.t2;
+      svg.appendChild(t2);
 
-    const padX = 12;
-    const t1 = document.createElementNS(svgNS, "text");
-    t1.setAttribute("x", b.x + padX);
-    t1.setAttribute("y", b.y + b.h/4 + 5);
-    t1.setAttribute("font-size", "14");
-    t1.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
-    t1.setAttribute("fill", "#e9eefc");
-    t1.setAttribute("dominant-baseline", "middle");
-    t1.textContent = b.t1;
-    svg.appendChild(t1);
+      const sep = document.createElementNS(svgNS, "line");
+      sep.setAttribute("x1", b.x + 8);
+      sep.setAttribute("x2", b.x + b.w - 8);
+      sep.setAttribute("y1", b.y + b.h/2);
+      sep.setAttribute("y2", b.y + b.h/2);
+      sep.setAttribute("stroke", "rgba(255,255,255,0.06)");
+      sep.setAttribute("stroke-width", "1");
+      svg.appendChild(sep);
+    };
+    boxes.forEach(drawBox);
 
-    const t2 = document.createElementNS(svgNS, "text");
-    t2.setAttribute("x", b.x + padX);
-    t2.setAttribute("y", b.y + (3*b.h)/4 - 5);
-    t2.setAttribute("font-size", "14");
-    t2.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
-    t2.setAttribute("fill", "#e9eefc");
-    t2.setAttribute("dominant-baseline", "middle");
-    t2.textContent = b.t2;
-    svg.appendChild(t2);
+    // Round chip'leri çiz
+    wrapEl.querySelectorAll(".round-chip").forEach(chip => {
+      const r = chip.getBoundingClientRect();
+      const x = r.left - wrapRect.left;
+      const y = r.top  - wrapRect.top;
+      const w = r.width, h = r.height;
 
-    const sep = document.createElementNS(svgNS, "line");
-    sep.setAttribute("x1", b.x + 8);
-    sep.setAttribute("x2", b.x + b.w - 8);
-    sep.setAttribute("y1", b.y + b.h/2);
-    sep.setAttribute("y2", b.y + b.h/2);
-    sep.setAttribute("stroke", "rgba(255,255,255,0.06)");
-    sep.setAttribute("stroke-width", "1");
-    svg.appendChild(sep);
-  };
-  boxes.forEach(drawBox);
+      const rc = document.createElementNS(svgNS, "rect");
+      rc.setAttribute("x", x); rc.setAttribute("y", y);
+      rc.setAttribute("width", w); rc.setAttribute("height", h);
+      rc.setAttribute("rx", "8"); rc.setAttribute("ry", "8");
+      rc.setAttribute("fill", "#0f1530");
+      rc.setAttribute("stroke", "rgba(255,255,255,0.1)");
+      rc.setAttribute("stroke-width", "1");
+      svg.appendChild(rc);
 
-  // --- Round chip'leri çiz ---
-  wrapEl.querySelectorAll(".round-chip").forEach(chip => {
-    const r = chip.getBoundingClientRect();
-    const x = r.left - wrapRect.left;
-    const y = r.top  - wrapRect.top;
-    const w = r.width, h = r.height;
+      const tx = document.createElementNS(svgNS, "text");
+      tx.setAttribute("x", x + w/2);
+      tx.setAttribute("y", y + h/2);
+      tx.setAttribute("text-anchor", "middle");
+      tx.setAttribute("dominant-baseline", "middle");
+      tx.setAttribute("font-size", "13");
+      tx.setAttribute("font-weight", "600");
+      tx.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
+      tx.setAttribute("fill", "#cfe3ff");
+      tx.textContent = chip.textContent || "";
+      svg.appendChild(tx);
+    });
 
-    const rc = document.createElementNS(svgNS, "rect");
-    rc.setAttribute("x", x); rc.setAttribute("y", y);
-    rc.setAttribute("width", w); rc.setAttribute("height", h);
-    rc.setAttribute("rx", "8"); rc.setAttribute("ry", "8");
-    rc.setAttribute("fill", "#0f1530");
-    rc.setAttribute("stroke", "rgba(255,255,255,0.1)");
-    rc.setAttribute("stroke-width", "1");
-    svg.appendChild(rc);
+    // Çizgileri kutulardan yeniden hesapla (kayma çözümü)
+    const EPS = 2;
+    const colsX = [];
+    boxes.forEach(b => {
+      const x = b.x;
+      const hit = colsX.find(v => Math.abs(v - x) <= EPS);
+      if (!hit) colsX.push(x);
+    });
+    colsX.sort((a,b)=>a-b);
 
-    const tx = document.createElementNS(svgNS, "text");
-    tx.setAttribute("x", x + w/2);
-    tx.setAttribute("y", y + h/2);
-    tx.setAttribute("text-anchor", "middle");
-    tx.setAttribute("dominant-baseline", "middle");
-    tx.setAttribute("font-size", "13");
-    tx.setAttribute("font-weight", "600");
-    tx.setAttribute("font-family", "system-ui, -apple-system, Segoe UI, Roboto, Arial");
-    tx.setAttribute("fill", "#cfe3ff");
-    tx.textContent = chip.textContent || "";
-    svg.appendChild(tx);
-  });
+    const cols = colsX.map(x0 => boxes
+      .filter(b => Math.abs(b.x - x0) <= EPS)
+      .sort((a,b)=>a.y - b.y)
+    );
 
-  // --- Çizgileri KUTULARDAN yeniden hesapla (kayma çözümü) ---
-  // 1) kolonları tespit et (x değerine göre gruplama)
-  const EPS = 2; // piksel tolerans
-  const colsX = [];
-  boxes.forEach(b => {
-    const x = b.x;
-    const hit = colsX.find(v => Math.abs(v - x) <= EPS);
-    if (!hit) colsX.push(x);
-  });
-  colsX.sort((a,b)=>a-b);
+    const strokeColor = "rgba(255,255,255,0.18)";
+    const strokeW = 2;
+    const orth = (x1,y1,x2,y2) => {
+      const midX = (x1 + x2) / 2;
+      return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+    };
 
-  // 2) her kolondaki kutuları sırala
-  const cols = colsX.map(x0 => boxes
-    .filter(b => Math.abs(b.x - x0) <= EPS)
-    .sort((a,b)=>a.y - b.y)
-  );
+    for (let r = 1; r < cols.length; r++) {
+      const L = cols[r-1];
+      const R = cols[r];
+      for (let i=0; i<R.length; i++){
+        const A = L[i*2], B = L[i*2+1], T = R[i];
+        if (!A || !B || !T) continue;
 
-  // 3) sol kolon -> sağ kolon bağlantıları (2i, 2i+1 -> i)
-  const strokeColor = "rgba(255,255,255,0.18)";
-  const strokeW = 2;
-  const orth = (x1,y1,x2,y2) => {
-    const midX = (x1 + x2) / 2;
-    return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-  };
+        const x1a = A.x + A.w, y1a = A.y + A.h/2;
+        const x1b = B.x + B.w, y1b = B.y + B.h/2;
+        const x2  = T.x,       y2  = T.y + T.h/2;
 
-  for (let r = 1; r < cols.length; r++) {
-    const L = cols[r-1];
-    const R = cols[r];
-    for (let i=0; i<R.length; i++){
-      const A = L[i*2], B = L[i*2+1], T = R[i];
-      if (!A || !B || !T) continue;
+        const p1 = document.createElementNS(svgNS,"path");
+        p1.setAttribute("d", orth(x1a, y1a, x2, y2));
+        p1.setAttribute("fill","none");
+        p1.setAttribute("stroke", strokeColor);
+        p1.setAttribute("stroke-width", strokeW);
+        p1.setAttribute("stroke-linejoin","round");
+        p1.setAttribute("stroke-linecap","round");
+        svg.appendChild(p1);
 
-      const x1a = A.x + A.w, y1a = A.y + A.h/2;
-      const x1b = B.x + B.w, y1b = B.y + B.h/2;
-      const x2  = T.x,       y2  = T.y + T.h/2;
-
-      const p1 = document.createElementNS(svgNS,"path");
-      p1.setAttribute("d", orth(x1a, y1a, x2, y2));
-      p1.setAttribute("fill","none");
-      p1.setAttribute("stroke", strokeColor);
-      p1.setAttribute("stroke-width", strokeW);
-      p1.setAttribute("stroke-linejoin","round");
-      p1.setAttribute("stroke-linecap","round");
-      svg.appendChild(p1);
-
-      const p2 = document.createElementNS(svgNS,"path");
-      p2.setAttribute("d", orth(x1b, y1b, x2, y2));
-      p2.setAttribute("fill","none");
-      p2.setAttribute("stroke", strokeColor);
-      p2.setAttribute("stroke-width", strokeW);
-      p2.setAttribute("stroke-linejoin","round");
-      p2.setAttribute("stroke-linecap","round");
-      svg.appendChild(p2);
+        const p2 = document.createElementNS(svgNS,"path");
+        p2.setAttribute("d", orth(x1b, y1b, x2, y2));
+        p2.setAttribute("fill","none");
+        p2.setAttribute("stroke", strokeColor);
+        p2.setAttribute("stroke-width", strokeW);
+        p2.setAttribute("stroke-linejoin","round");
+        p2.setAttribute("stroke-linecap","round");
+        svg.appendChild(p2);
+      }
     }
+    return svg;
   }
-
-  return svg;
-}
-
 
   async function svgToPNGAndDownload(svg, filename = "fixture.png", maxPx = 4096, bgColor = "#0b1020") {
     const W = parseInt(svg.getAttribute("width"),10);
@@ -1253,7 +1225,6 @@ function bracketWrapToSVG(wrapEl) {
     const wraps = Array.from(root.querySelectorAll(".bracket-wrap"));
     if (!wraps.length) return;
 
-    // SVG'leri hazırla
     const svgs = wraps.map(w => bracketWrapToSVG(w));
     const dims = svgs.map(s => ({
       w: parseInt(s.getAttribute("width"),10),
@@ -1263,9 +1234,7 @@ function bracketWrapToSVG(wrapEl) {
       ? (w.previousElementSibling.textContent || "")
       : "");
 
-    // Toplam boy
-    const titleH = 28; // her bölüm başlığı yüksekliği
-    const gap = 24;
+    const titleH = 28, gap = 24;
     const totalH = dims.reduce((a,b) => a + b.h, 0) + (wraps.length - 1) * gap + titles.filter(Boolean).length * titleH + 32;
     const maxW   = Math.max(...dims.map(d => d.w)) + 32;
 
@@ -1292,7 +1261,6 @@ function bracketWrapToSVG(wrapEl) {
         ctx.fillText(titles[i], Math.round(16*scale), y);
         y += Math.round(titleH * scale);
       }
-
       const xml = new XMLSerializer().serializeToString(svgs[i]);
       const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1328,7 +1296,6 @@ function bracketWrapToSVG(wrapEl) {
     const rowH = 20; // her satır metin yüksekliği
     const titleH = 26;
 
-    // kaba hesap: genişlik ~ 1000
     const W = 1000;
     let H = padY;
     rounds.forEach(r => {
@@ -1346,7 +1313,6 @@ function bracketWrapToSVG(wrapEl) {
     canvas.height = Math.round(H * scale);
     const ctx = canvas.getContext("2d");
 
-    // arkaplan
     ctx.fillStyle = "#0b1020";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
@@ -1355,13 +1321,11 @@ function bracketWrapToSVG(wrapEl) {
     ctx.textBaseline = "top";
 
     rounds.forEach((r, idx) => {
-      // başlık
       ctx.fillStyle = "#cfe3ff";
       ctx.font = `600 ${Math.round(18*scale)}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
       ctx.fillText(r.name || `Hafta ${idx+1}`, Math.round(padX*scale), y);
       y += Math.round(titleH*scale);
 
-      // maçlar
       ctx.fillStyle = "#e9eefc";
       ctx.font = `${Math.round(14*scale)}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
       r.matches.forEach(([a,b]) => {
@@ -1383,8 +1347,7 @@ function bracketWrapToSVG(wrapEl) {
     }, "image/png");
   }
 
-  /* ------------ Çıktıyı yaz ve indir ------------ */
-
+  /* ------------ ÇIKTIYI YAZ (tek kaynak) ------------ */
   function renderFixtureOutput(output, mode){
     fixtureResults.style.display = "block";
     fixtureResults.innerHTML = "";
@@ -1466,107 +1429,208 @@ function bracketWrapToSVG(wrapEl) {
     title.textContent = modeTitle;
     fixtureResults.appendChild(title);
 
-    // ---- rounds listesi (metin) ----
-    const renderRounds = (rounds) => {
+    // Tek kaynak: metin listesinde toplanacak span'lar
+    const LIST_SPANS = (window.__LIST_SPANS = []);
+
+    // metin liste çizici
+    const renderRoundsList = (rounds) => {
       rounds.forEach((round, idx) => {
-        const box = document.createElement("div"); box.className = "team";
-        const h = document.createElement("div"); h.className = "team-title";
-        h.textContent = round.name || `Tur ${idx+1}`;
+        const box = document.createElement("div");
+        box.className = "team";
+
+        const h = document.createElement("div");
+        h.className = "team-title";
+        h.textContent = round.name || `Tur ${idx + 1}`;
         box.appendChild(h);
+
         const ul = document.createElement("ul");
-        round.matches.forEach(([a,b]) => {
+        round.matches.forEach(([a, b]) => {
           const li = document.createElement("li");
-          li.textContent = `${a} vs ${b}`;
+
+          const sa = document.createElement("span");
+          sa.className = "team-name";
+          sa.dataset.full = a;
+          sa.textContent = "???";
+
+          const sb = document.createElement("span");
+          sb.className = "team-name";
+          sb.dataset.full = b;
+          sb.textContent = "???";
+
+          li.appendChild(sa);
+          li.appendChild(document.createTextNode(" vs "));
+          li.appendChild(sb);
           ul.appendChild(li);
+
+          LIST_SPANS.push(sa, sb);
         });
+
         box.appendChild(ul);
         fixtureResults.appendChild(box);
       });
     };
 
-    if (output.sections){
+    if (mode === "doubleelim" && output.sections) {
+      const hints = output.labelHints || {};
+
+      // --- Metin listeleri: UB/LB/GF
       output.sections.forEach(section => {
         const secH = document.createElement("h4");
         secH.style.marginTop = "10px";
         secH.textContent = section.title;
         secH.className = "bracket-section";
         fixtureResults.appendChild(secH);
-        renderRounds(section.rounds);
+        renderRoundsList(section.rounds);
       });
+
+      if (output.bye){
+        const byeBox = document.createElement("div");
+        byeBox.className = "warn";
+        byeBox.textContent = output.bye;
+        fixtureResults.appendChild(byeBox);
+      }
+
+      // --- Görsel bracket'lar: UB/LB/GF
+      output.sections.forEach(section => {
+        const secH = document.createElement("h4");
+        secH.textContent = section.title;
+        secH.className = "bracket-section";
+        fixtureResults.appendChild(secH);
+        renderBracketColumns(fixtureResults, section.rounds, hints);
+      });
+
+    } else if (mode === "roundrobin") {
+      renderRoundsList(output.rounds || []);
+      if (output.bye){
+        const byeBox = document.createElement("div");
+        byeBox.className = "warn";
+        byeBox.textContent = output.bye;
+        fixtureResults.appendChild(byeBox);
+      }
     } else {
-      renderRounds(output.rounds || []);
+      // tek eleme: metin + tek bracket
+      const secH1 = document.createElement("h4");
+      secH1.textContent = "Bracket";
+      secH1.className = "bracket-section";
+      fixtureResults.appendChild(secH1);
+      renderRoundsList(output.rounds || []);
+
+      const secH2 = document.createElement("h4");
+      secH2.textContent = "Bracket";
+      secH2.className = "bracket-section";
+      fixtureResults.appendChild(secH2);
+      renderBracketColumns(fixtureResults, output.rounds || []);
+      if (output.bye){
+        const byeBox = document.createElement("div");
+        byeBox.className = "warn";
+        byeBox.textContent = output.bye;
+        fixtureResults.appendChild(byeBox);
+      }
     }
 
-    if (output.bye){
-      const byeBox = document.createElement("div");
-      byeBox.className = "warn";
-      byeBox.textContent = output.bye;
-      fixtureResults.appendChild(byeBox);
+    // --- REVEAL KUYRUĞU ---
+    FIXTURE_QUEUE = [];
+    FIXTURE_PTR = 0;
+
+    const allBoxes = fixtureResults.querySelectorAll(".match-box");
+    let listPtr = 0;
+
+    allBoxes.forEach((b, i) => {
+      const t1 = b.dataset.t1 || "";
+      const t2 = b.dataset.t2 || "";
+      FIXTURE_QUEUE.push({
+        boxIndex: i, slot: 0, name: t1,
+        listSpan: LIST_SPANS[listPtr++] || null
+      });
+      FIXTURE_QUEUE.push({
+        boxIndex: i, slot: 1, name: t2,
+        listSpan: LIST_SPANS[listPtr++] || null
+      });
+    });
+
+    if (revealFixtureBtn) {
+      revealFixtureBtn.disabled = false;
+      revealFixtureBtn.textContent = "Sıradaki";
     }
-
-    // ---- görsel Bracket çiz ----
-if (mode === "doubleelim" && output.sections) {
-  const hints = output.labelHints || {};
-
-  const ubH = document.createElement("h4");
-  ubH.textContent = "Upper Bracket";
-  ubH.className = "bracket-section";
-  fixtureResults.appendChild(ubH);
-  renderBracketColumns(fixtureResults, output.sections[0].rounds, hints);
-
-  const lbH = document.createElement("h4");
-  lbH.textContent = "Lower Bracket";
-  lbH.className = "bracket-section";
-  fixtureResults.appendChild(lbH);
-  renderBracketColumns(fixtureResults, output.sections[1].rounds, hints);
-
-  const gfH = document.createElement("h4");
-  gfH.textContent = "Grand Final";
-  gfH.className = "bracket-section";
-  fixtureResults.appendChild(gfH);
-  renderBracketColumns(fixtureResults, output.sections[2].rounds, hints);
-} else if (mode !== "roundrobin" && (output.rounds?.length)) {
-      const brH = document.createElement("h4");
-      brH.textContent = "Bracket";
-      brH.className = "bracket-section";
-      fixtureResults.appendChild(brH);
-      renderBracketColumns(fixtureResults, output.rounds);
-    }
-
-    // bottom toolbar (opsiyonel)
-    const bottomBar = makeToolbar();
-    bottomBar.style.marginTop = "12px";
-    fixtureResults.appendChild(bottomBar);
   }
+
+  // --- Fikstür "Sıradaki" davranışı ---
+  function revealNextTeam() {
+    if (FIXTURE_PTR >= FIXTURE_QUEUE.length) return;
+
+    const item = FIXTURE_QUEUE[FIXTURE_PTR];
+
+    // Bracket'ta aç
+    const boxes = fixtureResults.querySelectorAll(".match-box");
+    const box = boxes[item.boxIndex];
+    if (box) {
+      const span = box.querySelectorAll(".team-name")[item.slot];
+      if (span) {
+        span.textContent = item.name || "";
+        span.setAttribute("data-full", item.name || "");
+      }
+    }
+
+    // Metin listesinde aç
+    if (item.listSpan) {
+      item.listSpan.textContent = item.name || "";
+      item.listSpan.setAttribute("data-full", item.name || "");
+    }
+
+    FIXTURE_PTR++;
+
+    if (FIXTURE_PTR >= FIXTURE_QUEUE.length) {
+      if (revealFixtureBtn) {
+        revealFixtureBtn.textContent = "Bitti";
+        revealFixtureBtn.disabled = true;
+      }
+    }
+  }
+
+  // Tek buton: İlk basışta fikstürü kur; sonra her basışta sıradaki
+  revealFixtureBtn?.addEventListener("click", () => {
+    // Queue boşsa önce fikstürü üret
+    if (!FIXTURE_QUEUE.length) {
+      const teams = readTeams();
+      if (teams.length < 2) {
+        renderFixtureOutput({ rounds: [], bye: null }, fixtureModeEl.value);
+        return;
+      }
+      const base = (fixtureSeedingEl.value === "ordered")
+        ? [...teams]
+        : randShuffle([...teams]);
+
+      let out;
+      if (fixtureModeEl.value === "roundrobin") {
+        out = generateRoundRobin(base, fixtureDoubleEl.value, "ordered");
+      } else if (fixtureModeEl.value === "doubleelim") {
+        out = generateDoubleElim(base, "ordered");
+      } else {
+        out = generateSingleElimFull(base, "ordered");
+      }
+
+      renderFixtureOutput(out, fixtureModeEl.value);
+      fixtureResults?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Her tıklamada bir isim aç
+    revealNextTeam();
+  });
 
   /* ------------ Eventler ------------ */
   addTeamBtn?.addEventListener("click", () => addTeamField());
   clearTeamsBtn?.addEventListener("click", () => {
     fixtureFields.innerHTML = ""; addTeamField(); addTeamField();
     persistFixture(); fixtureResults.style.display = "none"; fixtureResults.innerHTML = "";
+    FIXTURE_QUEUE = []; FIXTURE_PTR = 0;
+    if (revealFixtureBtn) { revealFixtureBtn.textContent = "Sıradaki"; revealFixtureBtn.disabled = false; }
   });
   fixtureModeEl?.addEventListener("change", () => {
     doubleWrap.style.display = (fixtureModeEl.value === "roundrobin") ? "" : "none";
-  });
-  makeFixtureBtn?.addEventListener("click", () => {
-    const teams = readTeams();
-    if (teams.length < 2) {
-      renderFixtureOutput({ rounds: [], bye: null }, fixtureModeEl.value);
-      return;
-    }
-    const base = (fixtureSeedingEl.value === "ordered") ? [...teams] : randShuffle([...teams]);
-
-    let out;
-    if (fixtureModeEl.value === "roundrobin") {
-      out = generateRoundRobin(base, fixtureDoubleEl.value, "ordered");
-    } else if (fixtureModeEl.value === "doubleelim") {
-      out = generateDoubleElim(base, "ordered");
-    } else {
-      out = generateSingleElimFull(base, "ordered");
-    }
-
-    renderFixtureOutput(out, fixtureModeEl.value);
-    fixtureResults?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // mod değişince mevcut kuyruğu sıfırla
+    FIXTURE_QUEUE = []; FIXTURE_PTR = 0;
+    if (revealFixtureBtn) { revealFixtureBtn.textContent = "Sıradaki"; revealFixtureBtn.disabled = false; }
+    fixtureResults.style.display = "none"; fixtureResults.innerHTML = "";
   });
 
   // başlangıç

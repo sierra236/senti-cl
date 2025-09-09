@@ -13,7 +13,6 @@
       <img src="img/dobby-footballer.png" alt="SCL" class="header-logo" />
       <span class="brand-title">Sentient CL Draw</span>
     </div>
-
     <nav class="main-nav" aria-label="Ana menü">
       <button class="nav-btn active" id="navTeams" type="button">Draw Teams</button>
       <button class="nav-btn" id="navFixture" type="button">Draw Fixture</button>
@@ -24,10 +23,10 @@
     <h1>Kura Çekimi</h1>
     <p class="muted">Önce takım formatını seç; seçtiğin sayıda tier görünür ve her tier’da en az bir oyuncu slotu olur.</p>
 
-    <!-- ========== İlk Format Ekranı ========== -->
+    <!-- ========== FORMAT SEÇİMİ ========== -->
     <section id="formatScreen" class="format-screen">
-      <div class="format-box" role="dialog" aria-labelledby="formatTitle" aria-modal="true">
-        <h2 id="formatTitle" class="m0">Takım Formatı</h2>
+      <div class="format-box">
+        <h2 class="m0">Takım Formatı</h2>
         <p class="muted" style="margin-top:6px">Seçtiğin sayı kadar tier görünecek.</p>
         <div class="format-grid">
           <button class="fs-btn" data-format="1" type="button">1v1</button>
@@ -44,98 +43,73 @@
       <header class="row space-between align-center">
         <h2 class="m0">Katılımcılar</h2>
         <div class="row gap">
-          <!-- Tüm görünür tier’lara birer alan ekle -->
-          <button type="button" id="addFieldBtn" class="btn" title="Her tier’a bir alan ekle">＋</button>
-          <button type="button" id="changeFormatBtn" class="btn" title="Formatı değiştir">Formatı Değiştir</button>
-          <button type="button" id="clearAllBtn" class="btn btn-ghost" title="Tüm alanları temizle">Temizle</button>
+          <button type="button" id="addFieldBtn" class="btn">＋</button>
+          <button type="button" id="changeFormatBtn" class="btn">Formatı Değiştir</button>
+          <button type="button" id="clearAllBtn" class="btn btn-ghost">Temizle</button>
         </div>
       </header>
 
-      <!-- 5 Tier alanı (JS görünür/gizli yapar) -->
+      <!-- Tier alanları -->
       <div class="tiers-grid">
-        <div class="tier-card hidden" data-tier="t1">
-          <h3>Tier 1</h3>
-          <div id="fields-t1" class="stack"></div>
-        </div>
-        <div class="tier-card hidden" data-tier="t2">
-          <h3>Tier 2</h3>
-          <div id="fields-t2" class="stack"></div>
-        </div>
-        <div class="tier-card hidden" data-tier="t3">
-          <h3>Tier 3</h3>
-          <div id="fields-t3" class="stack"></div>
-        </div>
-        <div class="tier-card hidden" data-tier="t4">
-          <h3>Tier 4</h3>
-          <div id="fields-t4" class="stack"></div>
-        </div>
-        <div class="tier-card hidden" data-tier="t5">
-          <h3>Tier 5</h3>
-          <div id="fields-t5" class="stack"></div>
-        </div>
+        <div class="tier-card hidden" data-tier="t1"><h3>Tier 1</h3><div id="fields-t1" class="stack"></div></div>
+        <div class="tier-card hidden" data-tier="t2"><h3>Tier 2</h3><div id="fields-t2" class="stack"></div></div>
+        <div class="tier-card hidden" data-tier="t3"><h3>Tier 3</h3><div id="fields-t3" class="stack"></div></div>
+        <div class="tier-card hidden" data-tier="t4"><h3>Tier 4</h3><div id="fields-t4" class="stack"></div></div>
+        <div class="tier-card hidden" data-tier="t5"><h3>Tier 5</h3><div id="fields-t5" class="stack"></div></div>
       </div>
 
       <!-- Kurallar -->
       <section class="card" style="margin-top:16px;">
-        <header class="row space-between align-center">
-          <h3 class="m0">Kurallar</h3>
-        </header>
-
+        <h3 class="m0">Kurallar</h3>
         <div class="rules-add row gap" style="margin-top:10px;">
-          <label class="field" style="min-width:200px;">
-            <span>Tür</span>
-            <select id="ruleType" class="input">
-              <option value="avoidPair">Aynı takımda olmasın</option>
-              <option value="preferPair">Beraber oynasın</option>
-            </select>
-          </label>
-          <input id="ruleA" class="input" placeholder="İsim A" aria-label="İsim A" />
-          <input id="ruleB" class="input" placeholder="İsim B" aria-label="İsim B" />
+          <select id="ruleType" class="input">
+            <option value="avoidPair">Aynı takımda olmasın</option>
+            <option value="preferPair">Beraber oynasın</option>
+          </select>
+          <input id="ruleA" class="input" placeholder="İsim A" />
+          <input id="ruleB" class="input" placeholder="İsim B" />
           <button id="addRuleBtn" class="btn" type="button">Ekle</button>
         </div>
-
         <div id="rulesList" class="stack" style="margin-top:12px;"></div>
       </section>
 
+      <!-- Reveal butonu -->
       <div class="teams-btn-wrap">
-        <button type="button" id="makeTeamsBtn" class="btn btn-primary big-btn">Takımları Oluştur</button>
+        <button id="makeTeamsBtn" class="btn btn-primary">Sıradaki</button>
       </div>
 
-      <!-- Takım Sonuçları -->
+
+
+      <!-- Takım sonuçları -->
       <div id="results" class="results card" style="margin-top:16px; display:none;"></div>
     </section>
 
     <!-- ========== FIXTURE SECTION ========== -->
     <section id="fixtureSection" class="card hidden">
       <header class="row space-between align-center">
-        <h2 class="m0">Takım Listesi (Fixture)</h2>
+        <h2 class="m0">Fixture</h2>
         <div class="row gap">
-          <button type="button" id="addTeamBtn" class="btn" title="Takım alanı ekle">＋</button>
-          <button type="button" id="clearTeamsBtn" class="btn btn-ghost" title="Takımları temizle">Temizle</button>
+          <button type="button" id="addTeamBtn" class="btn">＋</button>
+          <button type="button" id="clearTeamsBtn" class="btn btn-ghost">Temizle</button>
         </div>
       </header>
 
-      <p class="muted" style="margin:0 0 10px">Takım adlarını gir. En az 2 takım gerekli.</p>
-
-      <!-- Seçenekler -->
       <div class="fixture-toolbar row wrap gap">
         <label class="field">
           <span>Mod</span>
           <select id="fixtureMode" class="input">
             <option value="knockout">Eleme Usulü</option>
-            <option value="doubleelim">Çift Eleme (Upper/Lower)</option>
+            <option value="doubleelim">Çift Eleme</option>
             <option value="roundrobin">Lig Usulü</option>
           </select>
         </label>
-
         <label class="field" id="doubleWrap" style="display:none;">
           <span>Rövanş</span>
           <select id="fixtureDouble" class="input">
             <option value="single">Tek Maç</option>
-            <option value="double">Çift Maç (Ev/Deplasman)</option>
+            <option value="double">Çift Maç</option>
           </select>
         </label>
-
         <label class="field">
           <span>Sıralama</span>
           <select id="fixtureSeeding" class="input">
@@ -148,11 +122,12 @@
       <!-- Takım giriş alanları -->
       <div id="fixtureFields" class="stack" style="margin-top:10px;"></div>
 
+      <!-- Reveal butonu -->
       <div class="teams-btn-wrap">
-        <button type="button" id="makeFixtureBtn" class="btn btn-primary big-btn">Fikstürü Oluştur</button>
+        <button id="revealFixtureBtn" class="btn btn-primary">Sıradaki</button>
       </div>
 
-      <!-- Fikstür çıktısı (liste + bracket + indir menüsü) -->
+      <!-- Fixture çıktısı -->
       <div id="fixtureResults" class="results card" style="margin-top:16px; display:none;"></div>
     </section>
   </main>
@@ -160,8 +135,6 @@
   <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
-  <!-- App -->
   <script src="app.js"></script>
 </body>
 </html>
