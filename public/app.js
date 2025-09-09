@@ -44,6 +44,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentFormat = null; // 1..5
   let MIN_REQUIRED = {};    // görünür tier'lar için min=1, diğerleri 0
 
+    // Takımı tek tek açmak için durum
+  let TEAM_QUEUE = [];      // [{tier:'t1',name:'…'}, ...] listelerinin dizisi
+  let TEAM_REVEALED = 0;    // kaç takım ekrana basıldı
+  let MEMBER_PTR = { team: 0, member: 0 };
+
   /* ---------- Yardımcılar ---------- */
   function visibleTierKeys() {
     const n = currentFormat || 1;
@@ -414,7 +419,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return { ok: true, teams: result };
   }
 
-  function renderTeams(result) {
+  // Hata kutusu
+  function showTeamError(msg){
+    if (!resultsEl) return;
+    resultsEl.style.display = "block";
+    resultsEl.innerHTML = "";
+    const title = document.createElement("h3");
+    title.textContent = "Takımlar";
+    resultsEl.appendChild(title);
+
+    const warn = document.createElement("div");
+    warn.className = "warn";
+    warn.textContent = msg || "Takım oluşturulamadı.";
+    resultsEl.appendChild(warn);
+  }
+
+  // Liste alanını hazırlayıp indirme butonunu (başta disabled) koyar
+  function renderTeamsHeader(){
     if (!resultsEl) return;
     resultsEl.style.display = "block";
     resultsEl.innerHTML = "";
@@ -423,44 +444,27 @@ document.addEventListener("DOMContentLoaded", () => {
     title.textContent = "Takımlar";
     resultsEl.appendChild(title);
 
-    if (!result.ok) {
-      const warn = document.createElement("div");
-      warn.className = "warn";
-      warn.textContent = result.error || "Takım oluşturulamadı.";
-      resultsEl.appendChild(warn);
-      return;
-    }
-
-    result.teams.forEach((teamMembers, idx) => {
-      const teamBox = document.createElement("div");
-      teamBox.className = "team";
-
-      const h = document.createElement("div");
-      h.className = "team-title";
-      h.textContent = `Takım ${idx + 1}`;
-      teamBox.appendChild(h);
-
-      const ul = document.createElement("ul");
-      teamMembers.forEach(m => {
-        const li = document.createElement("li");
-        li.textContent = `[T${m.tier.slice(1)}] ${m.name}`;
-        ul.appendChild(li);
-      });
-      teamBox.appendChild(ul);
-
-      resultsEl.appendChild(teamBox);
-    });
-
     const actions = document.createElement("div");
     actions.className = "row gap";
     actions.style.marginTop = "12px";
 
     const dlBtn = document.createElement("button");
     dlBtn.className = "btn";
+    dlBtn.id = "teamsDownloadBtn";
     dlBtn.textContent = "İndir (Excel/CSV)";
+    dlBtn.disabled = true;                   // tüm takımlar açılınca aktif olacak
     dlBtn.addEventListener("click", () => {
       const n = currentFormat || 1;
-      const { headers, rows } = teamsToMatrix(result, n);
+      const headers = ["Team", ...Array.from({ length: n }, (_, i) => `T${i + 1}`)];
+      const rows = TEAM_QUEUE.map((members, idx) => {
+        const row = Array(n + 1).fill("");
+        row[0] = `Team ${idx + 1}`;
+        members.forEach(m => {
+          const tierIdx = parseInt(m.tier.slice(1), 10) - 1;
+          if (tierIdx >= 0 && tierIdx < n) row[tierIdx + 1] = m.name;
+        });
+        return row;
+      });
       if (!downloadXLSX("teams.xlsx", headers, rows)) {
         const csv = toCSV(headers, rows);
         downloadCSV("teams.csv", csv);
@@ -471,10 +475,87 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsEl.appendChild(actions);
   }
 
-  makeTeamsBtn?.addEventListener("click", () => {
+  // Kuyruğu hazırla (kurallara göre tüm takımlar hesaplanır ama gösterilmez)
+  function prepareTeamQueue(){
     const res = buildTeams();
-    renderTeams(res);
-  });
+    if (!res || !res.ok) {
+      showTeamError(res?.error || "Takım oluşturulamadı.");
+      return false;
+    }
+    TEAM_QUEUE = res.teams || [];
+    TEAM_REVEALED = 0;
+    renderTeamsHeader();
+    return true;
+  }
+
+  // Her çağrıda bir takımı ekrana ekle
+function revealOneMember() {
+  if (!TEAM_QUEUE.length) return;
+
+  const tIdx = MEMBER_PTR.team;
+  const mIdx = MEMBER_PTR.member;
+  if (tIdx >= TEAM_QUEUE.length) return;
+
+  const member = TEAM_QUEUE[tIdx][mIdx];
+
+  // eğer bu takım kutusu yoksa önce oluştur
+  let teamBox = resultsEl.querySelector(`.team[data-idx="${tIdx}"]`);
+  if (!teamBox) {
+    teamBox = document.createElement("div");
+    teamBox.className = "team";
+    teamBox.setAttribute("data-idx", tIdx);
+
+    const h = document.createElement("div");
+    h.className = "team-title";
+    h.textContent = `Takım ${tIdx + 1}`;
+    teamBox.appendChild(h);
+
+    const ul = document.createElement("ul");
+    teamBox.appendChild(ul);
+
+    const actions = resultsEl.querySelector(".row.gap");
+    resultsEl.insertBefore(teamBox, actions);
+  }
+
+  // üyeyi ekle
+  const ul = teamBox.querySelector("ul");
+  const li = document.createElement("li");
+  li.textContent = `[T${member.tier.slice(1)}] ${member.name}`;
+  ul.appendChild(li);
+
+  // pointer ilerlet
+  MEMBER_PTR.member++;
+  if (MEMBER_PTR.member >= TEAM_QUEUE[tIdx].length) {
+    MEMBER_PTR.team++;
+    MEMBER_PTR.member = 0;
+  }
+
+  // bitti mi?
+  if (MEMBER_PTR.team >= TEAM_QUEUE.length) {
+    const dl = document.getElementById("teamsDownloadBtn");
+    if (dl) dl.disabled = false;
+    const mainBtn = document.getElementById("makeTeamsBtn");
+    if (mainBtn) { mainBtn.textContent = "Bitti"; mainBtn.disabled = true; }
+  } else {
+    const mainBtn = document.getElementById("makeTeamsBtn");
+    if (mainBtn) mainBtn.textContent = "Sıradaki";
+  }
+}
+
+
+
+  // "Sıradaki" akışı:
+makeTeamsBtn?.addEventListener("click", () => {
+  if (!TEAM_QUEUE.length) {
+    const ok = prepareTeamQueue();
+    if (!ok) return;
+    makeTeamsBtn.textContent = "Sıradaki";
+    MEMBER_PTR = { team: 0, member: 0 };
+  }
+  revealOneMember();
+});
+
+
 
   /* ========== NAV: Draw Teams / Draw Fixture ========== */
   const navTeams = document.getElementById("navTeams");
