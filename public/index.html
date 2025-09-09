@@ -24,6 +24,21 @@
     <h1>Kura Çekimi</h1>
     <p class="muted">Önce takım formatını seç; seçtiğin sayıda tier görünür ve her tier’da en az 1 oyuncu slotu olur.</p>
 
+    <section id="formatScreen" class="format-screen">
+      <div class="format-box">
+        <h2 class="m0">Takım Formatı</h2>
+        <p class="muted" style="margin-top:6px">Seçtiğin sayı kadar tier görünecek.</p>
+        <div class="format-grid">
+          <button class="fs-btn" data-format="1">1v1</button>
+          <button class="fs-btn" data-format="2">2v2</button>
+          <button class="fs-btn" data-format="3">3v3</button>
+          <button class="fs-btn" data-format="4">4v4</button>
+          <button class="fs-btn" data-format="5">5v5</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="teamsCard" class="card">
     <section class="card">
       <header class="row space-between align-center">
         <h2 class="m0">Katılımcılar</h2>
@@ -69,6 +84,25 @@
         </div>
       </div>
 
+      <!-- Kurallar -->
+      <div class="rules card" style="margin-top:16px;">
+        <header class="row space-between align-center">
+          <h3 class="m0">Kurallar</h3>
+        </header>
+
+        <div class="rules-add row gap" style="margin-top:10px;">
+          <select id="ruleType" class="input" style="max-width:280px;">
+            <option value="avoidPair">Aynı takımda olmasın</option>
+            <option value="preferPair">Beraber oynasın</option>
+          </select>
+          <input id="ruleA" class="input" placeholder="İsim A" />
+          <input id="ruleB" class="input" placeholder="İsim B" />
+          <button id="addRuleBtn" class="btn">Ekle</button>
+        </div>
+
+        <div id="rulesList" class="stack" style="margin-top:12px;"></div>
+      </div>
+
       <div class="teams-btn-wrap">
         <button type="button" id="makeTeamsBtn" class="btn big-btn">Takımları Oluştur</button>
       </div>
@@ -76,22 +110,58 @@
       <!-- Sonuçlar -->
       <div id="results" class="results card" style="margin-top:16px; display:none;"></div>
     </section>
-  </main>
+    </section>
 
-  <!-- Açılışta görünen FORMAT DİYALOĞU -->
-  <div id="formatDialog" class="dialog-backdrop">
-    <div class="dialog">
-      <h3 class="m0">Takım Formatı</h3>
-      <p class="muted" style="margin-top:6px">Seçtiğin sayı kadar tier görünecek.</p>
-      <div class="format-grid">
-        <button class="format-btn" data-format="1">1v1</button>
-        <button class="format-btn" data-format="2">2v2</button>
-        <button class="format-btn" data-format="3">3v3</button>
-        <button class="format-btn" data-format="4">4v4</button>
-        <button class="format-btn" data-format="5">5v5</button>
+    <!-- ============ FIXTURE SECTION ============ -->
+    <section id="fixtureSection" class="card hidden">
+      <header class="row space-between align-center">
+        <h2 class="m0">Takım Listesi (Fixture)</h2>
+        <div class="row gap">
+          <button type="button" id="addTeamBtn" class="btn">＋</button>
+          <button type="button" id="clearTeamsBtn" class="btn btn-ghost">Temizle</button>
+        </div>
+      </header>
+
+      <p class="muted" style="margin:0 0 10px">Takım adlarını gir. En az 2 takım gerekli.</p>
+
+      <!-- Seçenekler -->
+      <div class="fixture-toolbar row wrap gap">
+        <label class="field">
+          <span>Mod</span>
+          <select id="fixtureMode" class="input">
+            <option value="knockout">Eleme Usulü</option>
+            <option value="doubleelim">Çift Eleme (Upper/Lower)</option>
+            <option value="roundrobin">Lig Usulü</option>
+          </select>
+        </label>
+
+        <label class="field" id="doubleWrap" style="display:none;">
+          <span>Rövanş</span>
+          <select id="fixtureDouble" class="input">
+            <option value="single">Tek Maç</option>
+            <option value="double">Çift Maç (Ev/Deplasman)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Sıralama</span>
+          <select id="fixtureSeeding" class="input">
+            <option value="shuffle">Rastgele</option>
+            <option value="ordered">Sıralı</option>
+          </select>
+        </label>
       </div>
-    </div>
-  </div>
+
+      <div id="fixtureFields" class="stack" style="margin-top:10px;"></div>
+
+      <div class="teams-btn-wrap">
+        <button type="button" id="makeFixtureBtn" class="btn big-btn">Fikstürü Oluştur</button>
+      </div>
+
+      <div id="fixtureResults" class="results card" style="margin-top:16px; display:none;"></div>
+    </section>
+
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
