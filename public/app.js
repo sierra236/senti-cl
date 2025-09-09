@@ -1,4 +1,3 @@
-// app.js — tek dosya, tam sürüm (takım ve fikstür "Sıradaki" reveal)
 document.addEventListener("DOMContentLoaded", () => {
   /* ---------- DOM ---------- */
   const addBtn = document.getElementById("addFieldBtn");
@@ -11,19 +10,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const makeTeamsBtn = document.getElementById("makeTeamsBtn");
   const resultsEl = document.getElementById("results");
 
-  // --- Kurallar UI
+  // Rules UI
   const ruleTypeEl = document.getElementById("ruleType");
   const ruleAEl = document.getElementById("ruleA");
   const ruleBEl = document.getElementById("ruleB");
   const addRuleBtn = document.getElementById("addRuleBtn");
   const rulesListEl = document.getElementById("rulesList");
 
-  // Depolama anahtarları
+  // Storage Keys
   const LS_RULES = "senti-cl:rules:v1";
   const LS_KEY   = "senti-cl:participants:v3";
   let RULES = []; // { id, type: 'avoidPair'|'preferPair', a, b }
 
-  // Tier containerları
+  // Tier Containers
   const containers = {
     t1: document.getElementById("fields-t1"),
     t2: document.getElementById("fields-t2"),
@@ -40,19 +39,19 @@ document.addEventListener("DOMContentLoaded", () => {
     t5: document.querySelector('.tier-card[data-tier="t5"]'),
   };
 
-  /* ---------- State / Ayarlar ---------- */
+  /* ---------- State / Setting ---------- */
   let currentFormat = null; // 1..5
-  let MIN_REQUIRED = {};    // görünür tier'lar için min=1, diğerleri 0
+  let MIN_REQUIRED = {};    // for visible tiers min=1, diğerleri 0
 
-  // Reveal state: Takımlar
+  // Reveal state: Teams
   let TEAM_QUEUE = [];                 // [[{tier,name}...], ...]
   let MEMBER_PTR = { team: 0, member: 0 };
 
-  // Reveal state: Fikstür
+  // Reveal state: Fixture
   let FIXTURE_QUEUE = [];              // [{boxIndex, slot, name, listSpan?}, ...]
   let FIXTURE_PTR = 0;
 
-  /* ---------- Yardımcılar ---------- */
+  /* ---------- Helpers ---------- */
 function resetTeamsReveal() {
   TEAM_QUEUE = [];
   MEMBER_PTR = { team: 0, member: 0 };
@@ -95,7 +94,7 @@ function resetTeamsReveal() {
     });
 
 
-    // Enter -> tüm görünür tier'lara birer slot
+    // Enter -> a slot per all visible tiers
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -325,7 +324,7 @@ function resetTeamsReveal() {
     resetTeamsReveal();
   }
 
-  /* ---------- Butonlar / Olaylar ---------- */
+  /* ---------- Butonlar / Events ---------- */
   addBtn?.addEventListener("click", addOneToAllVisibleTiers);
   clearBtn?.addEventListener("click", clearAll);
 
@@ -361,7 +360,7 @@ function resetTeamsReveal() {
     });
   });
 
-  /* ===================== TAKIM OLUŞTURMA (reveal kişi) ===================== */
+  /* ===================== Creating Teams ===================== */
   function readFilled() {
     const data = {};
     for (const key of Object.keys(containers)) {
@@ -522,7 +521,7 @@ function buildTeams() {
 
 
 
-  // Hata kutusu
+  // Error Boxes
   function showTeamError(msg){
     if (!resultsEl) return;
     resultsEl.style.display = "block";
@@ -537,7 +536,7 @@ function buildTeams() {
     resultsEl.appendChild(warn);
   }
 
-  // Liste alanını hazırlayıp indirme butonunu (başta disabled) koyar
+  // Liste alanını hazırlayıp indirme butonunu (başta disabled)
   function renderTeamsHeader(){
     if (!resultsEl) return;
     resultsEl.style.display = "block";
@@ -578,7 +577,7 @@ function buildTeams() {
     resultsEl.appendChild(actions);
   }
 
-  // Kuyruğu hazırla (kurallara göre tüm takımlar hesaplanır ama gösterilmez)
+  // Kuyruğu hazırla
   function prepareTeamQueue(){
     const res = buildTeams();
     if (!res || !res.ok) {
@@ -591,7 +590,7 @@ function buildTeams() {
     return true;
   }
 
-  // Her çağrıda bir KİŞİ ekrana ekle
+  // Her çağrıda bir person ekrana ekle
   function revealOneMember() {
     if (!TEAM_QUEUE.length) return;
 
@@ -601,7 +600,7 @@ function buildTeams() {
 
     const member = TEAM_QUEUE[tIdx][mIdx];
 
-    // takım kutusu yoksa oluştur
+    // team box yoksa oluştur
     let teamBox = resultsEl.querySelector(`.team[data-idx="${tIdx}"]`);
     if (!teamBox) {
       teamBox = document.createElement("div");
@@ -620,7 +619,7 @@ function buildTeams() {
       resultsEl.insertBefore(teamBox, actions);
     }
 
-    // üyeyi ekle
+    // Add Member
     const ul = teamBox.querySelector("ul");
     const li = document.createElement("li");
     li.textContent = `[T${member.tier.slice(1)}] ${member.name}`;
@@ -633,7 +632,6 @@ function buildTeams() {
       MEMBER_PTR.member = 0;
     }
 
-    // bitti mi?
     const mainBtn = document.getElementById("makeTeamsBtn");
     if (MEMBER_PTR.team >= TEAM_QUEUE.length) {
       const dl = document.getElementById("teamsDownloadBtn");
@@ -644,7 +642,7 @@ function buildTeams() {
     }
   }
 
-  // "Sıradaki" akışı (Takımlar)
+  // "Sıradaki" akışı (teams)
   makeTeamsBtn?.addEventListener("click", () => {
     if (!TEAM_QUEUE.length) {
       const ok = prepareTeamQueue();
@@ -681,7 +679,7 @@ function buildTeams() {
   navFixture?.addEventListener("click", () => showView("fixture"));
   showView("teams");
 
-  /* ========== FIXTURE (Takım adlarından eşleşme - reveal) ========== */
+  /* ========== FIXTURE (match - reveal) ========== */
   const fixtureFields     = document.getElementById("fixtureFields");
   const addTeamBtn        = document.getElementById("addTeamBtn");
   const clearTeamsBtn     = document.getElementById("clearTeamsBtn");
@@ -734,7 +732,7 @@ function buildTeams() {
     else { addTeamField(); addTeamField(); }
   }
 
-  // yardımcılar
+  // helpers
   function randShuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
   function nextPow2(n){ let p=1; while(p<n) p<<=1; return p; }
   function roundLabel(size, idx){
@@ -745,7 +743,7 @@ function buildTeams() {
     return `Tur ${idx+1}`;
   }
 
-  // --- Generatorlar ---
+  // --- Generators ---
   function generateSingleElimFull(teams, seedingMode = "shuffle") {
     const list = [...teams];
     if (seedingMode === "shuffle") randShuffle(list);
@@ -900,7 +898,7 @@ function buildTeams() {
   }
 
   // rounds = [{name, matches:[[a,b], ...]}, ...]
-  // labelHints: UB eşleşmelerini LB/GF tarafına çözmek için opsiyonel harita
+  // labelHints: UB eşleşmelerini LB/GF tarafına çözmek için optional map
   function renderBracketColumns(target, rounds, labelHints = {}) {
     const wrap = document.createElement("div");
     wrap.className = "bracket-wrap";
@@ -943,7 +941,7 @@ function buildTeams() {
       return raw;
     };
 
-    // --- 1. sütun (R1) ---
+    // --- 1. cplumn (R1) ---
     const col0 = { boxes: [], titleEl: null };
     {
       const x = startX;
@@ -969,7 +967,7 @@ function buildTeams() {
     }
     cols.push(col0);
 
-    // --- 2..N sütunlar ---
+    // --- 2..N columns ---
     for (let r = 1; r < rounds.length; r++) {
       const prev = cols[r - 1];
       const x = startX + r * (BR_BOX_W + BR_COL_GAP);
@@ -987,7 +985,6 @@ function buildTeams() {
         box.dataset.t1 = pretty(pair[0]);
         box.dataset.t2 = pretty(pair[1]);
 
-        // Orta hizalama (güvenli fallback)
         const leftA = prev.boxes[mIdx * 2];
         const leftB = prev.boxes[mIdx * 2 + 1];
         let midY;
@@ -1013,7 +1010,6 @@ function buildTeams() {
       cols.push(col);
     }
 
-    // Ölç – wrap & svg boyu
     const { maxW, maxH } = (function measureWrap(columns){
       let mx = 0, my = 0;
       columns.forEach(c => c.boxes.forEach(b => {
@@ -1058,7 +1054,6 @@ function buildTeams() {
       }
     }
 
-    // kutulardaki metinleri küçült + gerekirse ortadan kısalt
     fitAllTeamTexts(wrap);
 
     // ------------ local helpers ------------
@@ -1117,7 +1112,7 @@ function buildTeams() {
     }
   }
 
-  /* ------------ Vektör Export (SVG -> PNG) ------------ */
+  /* ------------ Vektor Export (SVG -> PNG) ------------ */
   function bracketWrapToSVG(wrapEl) {
     const W = Math.ceil(wrapEl.scrollWidth || wrapEl.offsetWidth || 1000);
     const H = Math.ceil(wrapEl.scrollHeight || wrapEl.offsetHeight || 600);
@@ -1129,14 +1124,12 @@ function buildTeams() {
     svg.setAttribute("height", H);
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
-    // Arkaplan
     const bgRect = document.createElementNS(svgNS, "rect");
     bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
     bgRect.setAttribute("width", String(W)); bgRect.setAttribute("height", String(H));
     bgRect.setAttribute("fill", getComputedStyle(wrapEl).backgroundColor || "#0b1020");
     svg.appendChild(bgRect);
 
-    // --- Kutuları oku
     const wrapRect = wrapEl.getBoundingClientRect();
     const boxesDom = Array.from(wrapEl.querySelectorAll(".match-box"));
     const boxes = boxesDom.map(b => {
@@ -1150,7 +1143,6 @@ function buildTeams() {
       return { x, y, w, h, t1, t2 };
     });
 
-    // Kutuları çiz
     const drawBox = (b) => {
       const rect = document.createElementNS(svgNS, "rect");
       rect.setAttribute("x", b.x); rect.setAttribute("y", b.y);
@@ -1193,7 +1185,6 @@ function buildTeams() {
     };
     boxes.forEach(drawBox);
 
-    // Round chip'leri çiz
     wrapEl.querySelectorAll(".round-chip").forEach(chip => {
       const r = chip.getBoundingClientRect();
       const x = r.left - wrapRect.left;
@@ -1222,7 +1213,6 @@ function buildTeams() {
       svg.appendChild(tx);
     });
 
-    // Çizgileri kutulardan yeniden hesapla (kayma çözümü)
     const EPS = 2;
     const colsX = [];
     boxes.forEach(b => {
@@ -1393,7 +1383,7 @@ function buildTeams() {
   async function exportRoundRobinPNG(output, filename = "fixture.png", maxPx = 4096) {
     const rounds = output?.rounds || [];
     const padX = 24, padY = 24, gap = 16, lineGap = 4;
-    const rowH = 20; // her satır metin yüksekliği
+    const rowH = 20;
     const titleH = 26;
 
     const W = 1000;
@@ -1447,7 +1437,6 @@ function buildTeams() {
     }, "image/png");
   }
 
-  /* ------------ ÇIKTIYI YAZ (tek kaynak) ------------ */
   function renderFixtureOutput(output, mode){
     fixtureResults.style.display = "block";
     fixtureResults.innerHTML = "";
@@ -1521,7 +1510,6 @@ function buildTeams() {
     const topBar = makeToolbar();
     fixtureResults.appendChild(topBar);
 
-    // Başlık
     const title = document.createElement("h3");
     const modeTitle = mode === "doubleelim" ? "Fikstür (Çift Eleme)"
                       : mode === "roundrobin" ? "Fikstür (Lig Usulü)"
@@ -1529,10 +1517,8 @@ function buildTeams() {
     title.textContent = modeTitle;
     fixtureResults.appendChild(title);
 
-    // Tek kaynak: metin listesinde toplanacak span'lar
     const LIST_SPANS = (window.__LIST_SPANS = []);
 
-    // metin liste çizici
     const renderRoundsList = (rounds) => {
       rounds.forEach((round, idx) => {
         const box = document.createElement("div");
@@ -1573,7 +1559,6 @@ function buildTeams() {
     if (mode === "doubleelim" && output.sections) {
       const hints = output.labelHints || {};
 
-      // --- Metin listeleri: UB/LB/GF
       output.sections.forEach(section => {
         const secH = document.createElement("h4");
         secH.style.marginTop = "10px";
@@ -1590,7 +1575,6 @@ function buildTeams() {
         fixtureResults.appendChild(byeBox);
       }
 
-      // --- Görsel bracket'lar: UB/LB/GF
       output.sections.forEach(section => {
         const secH = document.createElement("h4");
         secH.textContent = section.title;
@@ -1608,7 +1592,6 @@ function buildTeams() {
         fixtureResults.appendChild(byeBox);
       }
     } else {
-      // tek eleme: metin + tek bracket
       const secH1 = document.createElement("h4");
       secH1.textContent = "Bracket";
       secH1.className = "bracket-section";
@@ -1628,7 +1611,7 @@ function buildTeams() {
       }
     }
 
-    // --- REVEAL KUYRUĞU ---
+    // --- REVEAL q ---
     FIXTURE_QUEUE = [];
     FIXTURE_PTR = 0;
 
@@ -1654,13 +1637,11 @@ function buildTeams() {
     }
   }
 
-  // --- Fikstür "Sıradaki" davranışı ---
   function revealNextTeam() {
     if (FIXTURE_PTR >= FIXTURE_QUEUE.length) return;
 
     const item = FIXTURE_QUEUE[FIXTURE_PTR];
 
-    // Bracket'ta aç
     const boxes = fixtureResults.querySelectorAll(".match-box");
     const box = boxes[item.boxIndex];
     if (box) {
@@ -1671,7 +1652,6 @@ function buildTeams() {
       }
     }
 
-    // Metin listesinde aç
     if (item.listSpan) {
       item.listSpan.textContent = item.name || "";
       item.listSpan.setAttribute("data-full", item.name || "");
@@ -1687,9 +1667,8 @@ function buildTeams() {
     }
   }
 
-  // Tek buton: İlk basışta fikstürü kur; sonra her basışta sıradaki
   revealFixtureBtn?.addEventListener("click", () => {
-    // Queue boşsa önce fikstürü üret
+    // q boşsa önce fikstürü üret
     if (!FIXTURE_QUEUE.length) {
       const teams = readTeams();
       if (teams.length < 2) {
@@ -1713,11 +1692,10 @@ function buildTeams() {
       fixtureResults?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    // Her tıklamada bir isim aç
     revealNextTeam();
   });
 
-  /* ------------ Eventler ------------ */
+  /* ------------ Events ------------ */
   addTeamBtn?.addEventListener("click", () => addTeamField());
   clearTeamsBtn?.addEventListener("click", () => {
     fixtureFields.innerHTML = ""; addTeamField(); addTeamField();
@@ -1733,7 +1711,6 @@ function buildTeams() {
     fixtureResults.style.display = "none"; fixtureResults.innerHTML = "";
   });
 
-  // başlangıç
   restoreFixture();
   doubleWrap.style.display = (fixtureModeEl?.value === "roundrobin") ? "" : "none";
 });

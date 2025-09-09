@@ -3,10 +3,8 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// public klasörünü statik sun
 app.use(express.static(path.join(__dirname, "public")));
 
-// küçük API örnekleri
 app.get("/api/hello", (req, res) => {
   res.json({ ok: true, message: "Selam! Node.js'ten geldim 🚀" });
 });

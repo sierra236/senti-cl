@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Üst bar -->
   <header class="site-header-min">
     <div class="brand">
       <img src="./img/dobby-footballer.png" alt="SCL" class="header-logo" />
@@ -23,7 +22,6 @@
     <h1>Kura Çekimi</h1>
     <p class="muted">Önce takım formatını seç; seçtiğin sayıda tier görünür ve her tier’da en az bir oyuncu slotu olur.</p>
 
-    <!-- ========== FORMAT SEÇİMİ ========== -->
     <section id="formatScreen" class="format-screen">
       <div class="format-box">
         <h2 class="m0">Takım Formatı</h2>
@@ -49,7 +47,7 @@
         </div>
       </header>
 
-      <!-- Tier alanları -->
+      <!-- Tiers -->
       <div class="tiers-grid">
         <div class="tier-card hidden" data-tier="t1"><h3>Tier 1</h3><div id="fields-t1" class="stack"></div></div>
         <div class="tier-card hidden" data-tier="t2"><h3>Tier 2</h3><div id="fields-t2" class="stack"></div></div>
@@ -58,7 +56,7 @@
         <div class="tier-card hidden" data-tier="t5"><h3>Tier 5</h3><div id="fields-t5" class="stack"></div></div>
       </div>
 
-      <!-- Kurallar -->
+      <!-- Rules -->
       <section class="card" style="margin-top:16px;">
         <h3 class="m0">Kurallar</h3>
         <div class="rules-add row gap" style="margin-top:10px;">
@@ -73,14 +71,14 @@
         <div id="rulesList" class="stack" style="margin-top:12px;"></div>
       </section>
 
-      <!-- Reveal butonu -->
+      <!-- Reveal button -->
       <div class="teams-btn-wrap">
         <button id="makeTeamsBtn" class="btn btn-primary">Sıradaki</button>
       </div>
 
 
 
-      <!-- Takım sonuçları -->
+      <!-- Team results -->
       <div id="results" class="results card" style="margin-top:16px; display:none;"></div>
     </section>
 
@@ -119,15 +117,15 @@
         </label>
       </div>
 
-      <!-- Takım giriş alanları -->
+      <!-- team entry -->
       <div id="fixtureFields" class="stack" style="margin-top:10px;"></div>
 
-      <!-- Reveal butonu -->
+      <!-- Reveal button -->
       <div class="teams-btn-wrap">
         <button id="revealFixtureBtn" class="btn btn-primary">Sıradaki</button>
       </div>
 
-      <!-- Fixture çıktısı -->
+      <!-- Fixture output -->
       <div id="fixtureResults" class="results card" style="margin-top:16px; display:none;"></div>
     </section>
   </main>
