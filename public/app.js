@@ -53,6 +53,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let FIXTURE_PTR = 0;
 
   /* ---------- Yardımcılar ---------- */
+function resetTeamsReveal() {
+  TEAM_QUEUE = [];
+  MEMBER_PTR = { team: 0, member: 0 };
+  if (resultsEl) {
+    resultsEl.style.display = "none";
+    resultsEl.innerHTML = "";
+  }
+  const mainBtn = document.getElementById("makeTeamsBtn");
+  if (mainBtn) { mainBtn.textContent = "Sıradaki"; mainBtn.disabled = false; }
+}
+
+
   function visibleTierKeys() {
     const n = currentFormat || 1;
     return Array.from({ length: n }, (_, i) => `t${i + 1}`);
@@ -79,7 +91,9 @@ document.addEventListener("DOMContentLoaded", () => {
       row.remove();
       persist();
       enforceMinimums();
+      resetTeamsReveal();
     });
+
 
     // Enter -> tüm görünür tier'lara birer slot
     input.addEventListener("keydown", (e) => {
@@ -89,7 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    input.addEventListener("input", persist);
+    input.addEventListener("input", () => { 
+      persist(); 
+      resetTeamsReveal(); 
+    });
 
     row.appendChild(input);
     row.appendChild(remove);
@@ -120,15 +137,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function clearAll() {
-    Object.values(containers).forEach(c => (c.innerHTML = ""));
-    enforceMinimums();
-    persist();
-    if (resultsEl) {
-      resultsEl.style.display = "none";
-      resultsEl.innerHTML = "";
+    function clearAll() {
+      Object.values(containers).forEach(c => (c.innerHTML = ""));
+      enforceMinimums();
+      persist();
+      resetTeamsReveal();
     }
-  }
+
 
   function teamsToMatrix(result, n) {
     const headers = ["Team", ...Array.from({ length: n }, (_, i) => `T${i + 1}`)];
@@ -249,7 +264,9 @@ document.addEventListener("DOMContentLoaded", () => {
         RULES = RULES.filter(r => r.id !== rule.id);
         persistRules();
         renderRules();
+        resetTeamsReveal();   
       });
+
 
       row.appendChild(meta);
       row.appendChild(remove);
@@ -269,6 +286,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderRules();
     if (ruleAEl) ruleAEl.value = "";
     if (ruleBEl) ruleBEl.value = "";
+    resetTeamsReveal();
   }
 
   function snapshotFromDOM() {
@@ -304,6 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     enforceMinimums();
+    resetTeamsReveal();
   }
 
   /* ---------- Butonlar / Olaylar ---------- */
@@ -321,7 +340,9 @@ document.addEventListener("DOMContentLoaded", () => {
   changeFormatBtn?.addEventListener("click", () => {
     persist();
     showFormatScreen();
+    resetTeamsReveal();
   });
+
 
   addRuleBtn?.addEventListener("click", addRule);
   ruleAEl?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addRule(); } });
@@ -355,72 +376,151 @@ document.addEventListener("DOMContentLoaded", () => {
     return RULES.filter(r => r.type === "avoidPair").map(r => [norm(r.a), norm(r.b)]);
   }
 
+  function compilePreferPairs() {
+    return RULES
+      .filter(r => r.type === "preferPair")
+      .map(r => [norm(r.a), norm(r.b)]);
+  }
+
+
   function violatesAvoid(teamMembers, avoidPairs) {
     const names = teamMembers.map(m => norm(m.name));
     return avoidPairs.some(([a, b]) => names.includes(a) && names.includes(b));
   }
 
-  function buildTeams() {
-    const vis = visibleTierKeys();
-    const data = readFilled();
-    const avoidPairs = compileAvoidPairs();
+function buildTeams() {
+  const vis = visibleTierKeys();
+  const data = readFilled();
 
-    const pools = {};
-    for (const k of vis) {
-      const arr = [...data[k]].filter(Boolean);
-      if (!arr.length) return { ok: false, error: `Tier ${k.slice(1)} boş.`, teams: [] };
-      // küçük shuffle
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      pools[k] = arr;
-    }
+  const avoidPairs  = compileAvoidPairs();   // [[a,b],...]
+  const preferPairs = compilePreferPairs();  // [[a,b],...]
 
-    const maxTeams = Math.min(...vis.map(k => pools[k].length));
-    const copyPools = (src) => Object.fromEntries(Object.entries(src).map(([k, v]) => [k, [...v]]));
-
-    function buildTeamDFS(teamIdx, poolsState) {
-      if (teamIdx === maxTeams) return [];
-
-      const currentTeam = [];
-      const tiersOrder = [...vis];
-
-      function placeTier(ti, poolsLocal) {
-        if (ti === tiersOrder.length) {
-          const nextPools = copyPools(poolsLocal);
-          const next = buildTeamDFS(teamIdx + 1, nextPools);
-          if (next !== null) return [currentTeam.slice(), ...next];
-          return null;
-        }
-
-        const tierKey = tiersOrder[ti];
-        const candidates = poolsLocal[tierKey];
-
-        for (let idx = 0; idx < candidates.length; idx++) {
-          const name = candidates[idx];
-          currentTeam.push({ tier: tierKey, name });
-          const bad = violatesAvoid(currentTeam, avoidPairs);
-
-          if (!bad) {
-            const nextPools = copyPools(poolsLocal);
-            nextPools[tierKey] = candidates.filter((_, i) => i !== idx);
-            const res = placeTier(ti + 1, nextPools);
-            if (res !== null) return res;
-          }
-          currentTeam.pop();
-        }
-        return null;
-      }
-      return placeTier(0, poolsState);
-    }
-
-    const result = buildTeamDFS(0, copyPools(pools));
-    if (!result) {
-      return { ok: false, error: "Kurallara uygun kombinasyon bulunamadı.", teams: [] };
-    }
-    return { ok: true, teams: result };
+  // Havuzlar (shuffle)
+  const pools = {};
+  for (const k of vis) {
+    const arr = [...(data[k] || [])].filter(Boolean);
+    if (!arr.length) return { ok:false, error:`Tier ${k.slice(1)} boş.`, teams:[] };
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    pools[k] = arr;
   }
+
+  // Hızlı lookup: isim -> tier
+  const nameToTier = {};
+  vis.forEach(k => (pools[k] || []).forEach(n => { nameToTier[norm(n)] = k; }));
+
+  // Aynı tier’da "beraber" istenmişse format gereği imkansız
+  const bad = preferPairs.find(([a,b]) => nameToTier[a] && nameToTier[a] === nameToTier[b]);
+  if (bad) {
+    return { ok:false, error:`"${bad[0]}" ve "${bad[1]}" aynı tier’da; seçilen formatta aynı takıma konamaz.`, teams:[] };
+  }
+
+  const maxTeams = Math.min(...vis.map(k => pools[k].length));
+  const clonePools = (src) => Object.fromEntries(Object.entries(src).map(([k,v]) => [k, [...v]]));
+
+  // partner grafiği (normalize edilmiş)
+  const partnerOf = {};
+  preferPairs.forEach(([a,b]) => {
+    (partnerOf[a] = partnerOf[a] || new Set()).add(b);
+    (partnerOf[b] = partnerOf[b] || new Set()).add(a);
+  });
+
+  // Bir ismin partner(ları) aynı takımda mı şart?
+  const partnersRequired = (nm) => partnerOf[nm] || new Set();
+
+  function buildTeamDFS(teamIdx, poolsState) {
+    if (teamIdx === maxTeams) return [];
+
+    const team = [];                        // [{tier,name}]
+    const remaining = new Set(vis);         // elde kalan tier’lar
+    const required = new Set();             // bu takımda mutlaka olması gereken İSİMLER (normalize)
+
+    const inTeam = (nm) => team.some(m => norm(m.name) === nm);
+
+    // Sıradaki seçilecek tier: eğer required içinde bir isim varsa, onun tier’ı öncelik alır
+    const pickNextTier = () => {
+      for (const nm of required) {
+        const tk = nameToTier[nm];
+        if (tk && remaining.has(tk)) return tk;
+      }
+      // yoksa sabit sıralamaya göre ilk kalan
+      for (const tk of vis) if (remaining.has(tk)) return tk;
+      return null;
+    };
+
+    function placeNext(poolsLocal) {
+      if (remaining.size === 0) {
+        // tüm zorunlular karşılandı mı?
+        if (required.size > 0) return null;
+        const nextPools = clonePools(poolsLocal);
+        const next = buildTeamDFS(teamIdx + 1, nextPools);
+        return next !== null ? [team.slice(), ...next] : null;
+      }
+
+      const tierKey = pickNextTier();
+      if (!tierKey) return null;
+
+      const candidates = poolsLocal[tierKey];
+      if (!candidates || !candidates.length) return null;
+
+      // Önce bu tier’da zorunlu partner var mı, onları en öne al
+      const must = candidates.filter(n => required.has(norm(n)));
+      const others = candidates.filter(n => !required.has(norm(n)));
+      const ordered = [...must, ...others];
+
+      // Bu tier işlemi bittiğinde tekrar geri eklemek için flag
+      remaining.delete(tierKey);
+
+      for (const name of ordered) {
+        const nm = norm(name);
+
+        // Seç
+        team.push({ tier: tierKey, name });
+
+        // Avoid ihlali?
+        if (violatesAvoid(team, avoidPairs)) {
+          team.pop();
+          continue;
+        }
+
+        // Zorunlular snapshot
+        const reqBefore = new Set(required);
+
+        // Bu kişinin partner(ları) bu takımda olmak zorunda
+        for (const p of partnersRequired(nm)) {
+          if (!inTeam(p)) required.add(p);
+        }
+        // Bu seçim required listesini karşıladıysa temizle
+        if (required.has(nm)) required.delete(nm);
+
+        // Havuzdan düş
+        const nextPools = clonePools(poolsLocal);
+        nextPools[tierKey] = candidates.filter(x => x !== name);
+
+        const res = placeNext(nextPools);
+        if (res !== null) return res;
+
+        // Backtrack
+        team.pop();
+        // required’ı eski haline getir (yalnızca bu adımda eklenenleri sil)
+        // (silme sırasında iterasyon yapmadığımız için güvenli)
+        required.clear();
+        reqBefore.forEach(x => required.add(x));
+      }
+
+      // Bu tier’da hiçbiri olmadı, tier’ı geri ekle ve dön
+      remaining.add(tierKey);
+      return null;
+    }
+
+    return placeNext(poolsState);
+  }
+
+  const result = buildTeamDFS(0, clonePools(pools));
+  if (!result) return { ok:false, error:"Kurallara uygun kombinasyon bulunamadı.", teams:[] };
+  return { ok:true, teams: result };
+}
+
+
 
   // Hata kutusu
   function showTeamError(msg){
